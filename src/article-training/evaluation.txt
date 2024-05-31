@@ -1,0 +1,82 @@
+Loading training data
+loaded data from cache
+Starting the training with the following outputs
+y = 1: 16
+y = 0: 2828
+y = -1: 177
+pipeline created from scratch
+Fitting the model with 2266 training data and 755 testing data
+Evaluating the model
+Article https://mitchellh.com/writing/ghostty-devlog-006: Ghostty Devlog 006 is going to be disliked, probability: 0.005821502002779705
+Article https://www.universetoday.com/166842/vera-rubins-primary-mirror-gets-its-first-reflective-coating/: Vera Rubin's primary mirror gets its first reflective coating is going to be disliked, probability: 0.0020805038780279178
+Article https://nautil.us/insects-and-other-animals-have-consciousness-571584/: Insects and other animals have consciousness is going to be disliked, probability: 0.0025066190748763654
+Article https://brainsteam.co.uk/2024/05/01/llms-cant-do-probability/: LLMs can't do probability is going to be disliked, probability: 0.003692870567095294
+Article https://www.nature.com/articles/d41586-024-01387-9: Cubic millimetre of brain mapped in spectacular detail is going to be disliked, probability: 0.0025017709173333486
+Article https://www.nature.com/articles/d41586-024-01387-9: Cubic millimetre of brain mapped in spectacular detail is going to be disliked, probability: 0.0025017709173333486
+Article https://whereto.stream: Show HN: I made an app that helps you find where to stream movies and TV shows is going to be liked, probability: 0.7552947796279027
+Article https://www.openmindmag.org/articles/the-processed-food-fight: Are Ultra-Processed Foods All That Unhealthy? is going to be disliked, probability: 0.0038565598200237827
+Article https://blog.arduino.cc/2024/04/23/creating-a-low-cost-ev-charging-station-with-arduino/: Creating a low-cost EV charging station with Arduino is going to be disliked, probability: 0.0022743487009110165
+Article https://hackersearch.net: Show HN: Hacker Search – A semantic search engine for Hacker News is going to be disliked, probability: 0.002381497227337649
+Article https://www.insideprecisionmedicine.com/topics/oncology/mrna-cancer-vaccine-reprograms-immune-system-to-tackle-glioblastoma/: mRNA Cancer Vaccine Reprograms Immune System to Tackle Glioblastoma in 48 Hours is going to be disliked, probability: 0.002810478489809353
+Article https://marimo.io/blog/lessons-learned: Lessons learned reinventing the Python notebook is going to be disliked, probability: 0.0014882810007986033
+Article https://marimo.io/blog/lessons-learned: Lessons learned reinventing the Python notebook is going to be disliked, probability: 0.0014693630190483033
+Article https://prose.nsood.in/linux-from-windows-installer: How to install Linux from a Windows installer is going to be disliked, probability: 0.0014856440310099437
+Article https://phys.org/news/2024-05-toxicity-fresh-scrutiny-salmon-die.html: Tire toxicity faces fresh scrutiny after salmon die-offs is going to be disliked, probability: 0.0025932717958152677
+Article https://phys.org/news/2024-05-toxicity-fresh-scrutiny-salmon-die.html: Tire toxicity faces fresh scrutiny after salmon die-offs is going to be disliked, probability: 0.0023456247482550163
+Article https://agupubs.onlinelibrary.wiley.com/doi/10.1029/2023SW003807: Digitized Continuous Magnetic Recordings for the 1859 Carrington Event is going to be disliked, probability: 0.0018262903134514828
+Article https://lwn.net/SubscriberLink/970824/0d89c6d83efad1e0/: A leadership crisis in the Nix community is going to be disliked, probability: 0.34344787444219976
+Article https://electrek.co/2024/05/03/read-the-wild-email-tesla-is-sending-to-suppliers-amid-supercharger-chaos/: Read the wild email Tesla is sending to suppliers amid Supercharger chaos is going to be disliked, probability: 0.001293944019245006
+Article https://mathoverflow.net/questions/470951/is-the-largest-root-of-a-random-polynomial-more-likely-to-be-real-than-complex: Is the largest root of a random polynomial more likely to be real than complex? is going to be disliked, probability: 0.002776955610536637
+Article https://mullvad.net/en/blog/dns-traffic-can-leak-outside-the-vpn-tunnel-on-android: DNS traffic can leak outside the VPN tunnel on Android is going to be disliked, probability: 0.002096735036102463
+Article https://nltimes.nl/2024/05/07/wilders-says-colleagues-leak-formation-document-dumb-mistake-deal-yet: Wilders says colleague's leak of formation document was a "dumb mistake"; No deal yet is going to be disliked, probability: 0.005016418664808174
+Article https://pitchfork.com/news/steve-albini-storied-producer-and-icon-of-the-rock-underground-dies-at-61/: Steve Albini, Storied Producer and Icon of the Rock Underground, Dies at 61 is going to be disliked, probability: 0.0025397485479245483
+Article https://docs.fcc.gov/public/attachments/DOC-402213A1.txt: FCC fines largest wireless carriers for sharing location data is going to be disliked, probability: 0.002121733164512308
+Article https://github.com/theCheeseboard/thedesk: TheDesk desktop environment is going to be disliked, probability: 0.002181021760004262
+Article https://www.apple.com/newsroom/2024/05/apple-unveils-stunning-new-ipad-pro-with-m4-chip-and-apple-pencil-pro/: New iPad Pro with M4 chip and Apple Pencil Pro is going to be disliked, probability: 0.0023933285100496715
+Article https://www.science.org/content/article/what-philippine-court-ruling-means-transgenic-golden-rice-once-hailed-dietary: Transgenic Golden Rice, once hailed as a dietary breakthrough is going to be disliked, probability: 0.0017728901351992496
+pipeline created from scratch
+Fitting the model with 2266 training data and 755 testing data
+Evaluating the model
+Article https://arstechnica.com/?p=2021979: Judge mulls sanctions over Google’s “shocking” destruction of internal chats is going to be liked, probability: 0.5287857510273632
+Article https://www.apple.com/newsroom/2024/05/apple-introduces-m4-chip/: Apple Introduces M4 Chip is going to be disliked, probability: 0.0007924459693692241
+Article https://stackoverflow.blog/2024/04/23/is-genai-the-next-dot-com-bubble/: Is GenAI the next dot-com bubble? is going to be disliked, probability: 0.0014757355825633525
+Article https://www.understandingai.org/p/the-ukraine-war-is-driving-rapid: The Ukraine war is driving rapid innovation in drone technology is going to be disliked, probability: 0.0007623425869025952
+Article https://pyspread.gitlab.io/: Pyspread – The Most Pythonic Spreadsheet is going to be disliked, probability: 0.0008987466128643647
+Article https://www.terminal.shop/: New startup sells coffee through SSH, and exclusively through SSH is going to be disliked, probability: 0.0007731140252788835
+Article https://www.terminal.shop/: New startup sells coffee through SSH, and exclusively through SSH is going to be disliked, probability: 0.0007731140252788835
+Article https://www.kff.org/medicare/issue-brief/a-new-use-for-wegovy-opens-the-door-to-medicare-coverage-for-millions-of-people-with-obesity/: Wegovy could be covered for at least 3.6M people under new Medicare rules is going to be disliked, probability: 0.0007638956343764873
+Article https://exple.tive.org/blarg/2024/04/24/magic-numbers/: Magic Numbers is going to be disliked, probability: 0.0006616323082883814
+Article https://arstechnica.com/?p=2021697: Glow of an exoplanet may be from starlight reflecting off liquid iron is going to be disliked, probability: 0.0017188164474887147
+pipeline created from scratch
+Fitting the model with 2266 training data and 755 testing data
+Evaluating the model
+Article https://lwn.net/Articles/444910/: Object oriented design patterns in the Linux kernel (2011) is going to be disliked, probability: 0.0035117672494155913
+Article https://99percentinvisible.org/article/project-habbakuk-britains-secret-ice-bergship-aircraft-carrier-project/: Project Habbakuk: Britain’s ice “bergship” aircraft carrier project (2017) is going to be disliked, probability: 0.0025196835170419284
+Article https://99percentinvisible.org/article/project-habbakuk-britains-secret-ice-bergship-aircraft-carrier-project/: Project Habbakuk: Britain’s ice “bergship” aircraft carrier project (2017) is going to be disliked, probability: 0.0025196835170419284
+Article https://lwn.net/SubscriberLink/970824/0d89c6d83efad1e0/: A leadership crisis in the Nix community is going to be liked, probability: 0.5682804830655929
+Article https://www.youtube.com/watch?v=dqTYg6vnQvw: YouTube's Legal Team sent me a letter [video] is going to be disliked, probability: 0.005525299315172963
+Article https://arcadeblogger.com/2024/02/13/ataris-mike-jang/: Atari's Mike Jang is going to be disliked, probability: 0.0028047909916170143
+Article https://bigthink.com/the-present/worlds-values-diverging/: Globalization was supposed to align the values. They're diverging is going to be disliked, probability: 0.002898131101862232
+Article https://bigthink.com/the-present/worlds-values-diverging/: Globalization was supposed to align the values. They're diverging is going to be disliked, probability: 0.002898131101862232
+Article https://www.flagsarenotlanguages.com/blog/: Flags Are Not Languages is going to be disliked, probability: 0.002659048362748607
+Article https://www.leonarddavid.com/blinded-by-the-light-megaconstellation-clash-with-astronomical-peer-groups/: How bad are satellite megaconstellations for astronomy? is going to be disliked, probability: 0.0012209626370207325
+Article https://techcrunch.com/2024/05/02/they-thought-they-were-joining-an-accelerator-instead-they-lost-their-startups/: They thought they were joining an accelerator – instead they lost their startups is going to be disliked, probability: 0.002903484715072775
+Article https://www.newyorker.com/magazine/2024/05/06/can-turning-office-towers-into-apartments-save-downtowns: Can turning office towers into apartments save downtowns? is going to be disliked, probability: 0.0030609155022134306
+Article https://bjsm.bmj.com/content/58/10/556: Cardio fitness is a strong, consistent predictor of morbidity and mortality is going to be liked, probability: 0.5670573021214373
+Article https://gizmodo.com/tesla-hiring-freeze-job-postings-elon-musk-layoffs-1851464758: Tesla Quietly Removes All U.S. Job Postings is going to be disliked, probability: 0.0023722977952522024
+pipeline created from scratch
+Fitting the model with 2266 training data and 755 testing data
+Evaluating the model
+Article https://nautil.us/insects-and-other-animals-have-consciousness-571584/: Insects and other animals have consciousness is going to be disliked, probability: 0.00047057147096172706
+Article https://nautil.us/insects-and-other-animals-have-consciousness-571584/: Insects and other animals have consciousness is going to be disliked, probability: 0.00047057147096172706
+Article https://99percentinvisible.org/article/project-habbakuk-britains-secret-ice-bergship-aircraft-carrier-project/: Project Habbakuk: Britain’s ice “bergship” aircraft carrier project (2017) is going to be disliked, probability: 0.000497924316220588
+Article https://99percentinvisible.org/article/project-habbakuk-britains-secret-ice-bergship-aircraft-carrier-project/: Project Habbakuk: Britain’s ice “bergship” aircraft carrier project (2017) is going to be disliked, probability: 0.000497924316220588
+Article https://sqlite.org/draft/whybytecode.html: Why SQLite Uses Bytecode is going to be disliked, probability: 0.0005132334043865567
+Article https://krystalgamer.github.io/spidey-decomp-status-may/: Spider-Man (Neversoft) Decompilation Project Progress Checkpoint – May 2024 is going to be disliked, probability: 0.0004136440101535803
+Article https://www.leonarddavid.com/blinded-by-the-light-megaconstellation-clash-with-astronomical-peer-groups/: How bad are satellite megaconstellations for astronomy? is going to be disliked, probability: 0.00050659485707638
+Article https://www.vox.com/22559293/food-waste-expiration-label-best-before: Food labels and the lies they tell us about ‘best before’ expiration dates (2021) is going to be disliked, probability: 0.0004468778346035168
+Article https://www.vice.com/en/article/43k7z3/nationwide-fake-host-scam-on-airbnb: I Accidentally Uncovered a Nationwide Scam Run by Fake Hosts on Airbnb (2019) is going to be disliked, probability: 0.0004520980421410916
+Article https://www.vice.com/en/article/43k7z3/nationwide-fake-host-scam-on-airbnb: I Accidentally Uncovered a Nationwide Scam Run by Fake Hosts on Airbnb (2019) is going to be disliked, probability: 0.0004520980421410916
+pipeline created from scratch
+Fitting the model with 3020 training data and 1 testing data
+Evaluating the model
