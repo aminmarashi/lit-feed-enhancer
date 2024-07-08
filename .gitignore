@@ -1,8 +1,2 @@
-dist/
-build/
-.terraform/
-terraform.tfstate
-terraform.tfstate.backup
-.terraform.tfstate*
-.*-hash
-node_modules
+/bin/
+/node_modules/

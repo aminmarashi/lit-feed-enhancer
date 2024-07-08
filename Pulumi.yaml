@@ -1,0 +1,7 @@
+name: lit-feed-enhancer
+runtime: nodejs
+config:
+  aws:profile:
+    value: dev
+  aws:region:
+    value: eu-west-1
