@@ -1,11 +1,11 @@
 const functionName = process.argv[2];
 require("esbuild").build({
-  entryPoints: [functionName],
-  sourcemap: true, // Source map generation must be turned on
+  entryPoints: ['./src/**/index.ts'],
+  sourcemap: true,
   platform: "node",
   bundle: true,
   outdir: "dist",
-  tsconfig: "tsconfig.json",
+  tsconfig: "tsconfig-dist.json",
   loader: { ".node": "file" },
   external: ["@aws-sdk/client-s3"],
 });
