@@ -1,0 +1,21 @@
+// This is almost identical to tsbuild-dist.json, the only difference is module: commonjs to make Pulumi code work
+{
+  "compilerOptions": {
+    "target": "es6",
+    "allowJs": true,
+    "skipLibCheck": true,
+    "strict": true,
+    "esModuleInterop": true,
+    "module": "commonjs",
+    "moduleResolution": "node",
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "incremental": true,
+    "paths": {
+      "@/*": ["./src/*"]
+    },
+  },
+  "include": ["**/*.ts", "**/*.tsx"],
+  "exclude": ["node_modules"],
+  "outDir": "dist"
+}
