@@ -84,6 +84,51 @@ const feedEventsBucket = new aws.s3.BucketV2(
     protect: true,
   }
 );
+const processArticleLambdaLogGroup = new aws.cloudwatch.LogGroup(
+  "process_article_lambda_log_group",
+  {
+    logGroupClass: "STANDARD",
+    name: "/aws/lambda/process-article",
+    retentionInDays: 7,
+  },
+  {
+    protect: true,
+  }
+);
+const processArticle = new aws.lambda.Function(
+  "process_article",
+  {
+    architectures: ["x86_64"],
+    environment: {
+      variables: {
+        MONGO_URL: "/lit-feed/dev/mongo",
+      },
+    },
+    ephemeralStorage: {
+      size: 512,
+    },
+    handler: "index.handler",
+    loggingConfig: {
+      logFormat: "Text",
+      logGroup: processArticleLambdaLogGroup.id,
+    },
+    memorySize: 512,
+    name: "process-article",
+    packageType: "Zip",
+    role: "arn:aws:iam::058264093352:role/lambda-execution-role",
+    runtime: aws.lambda.Runtime.NodeJS20dX,
+    timeout: 30,
+    tracingConfig: {
+      mode: "PassThrough",
+    },
+    code: new pulumi.asset.AssetArchive({
+      ".": new pulumi.asset.FileArchive("./dist/process-article"),
+    }),
+  },
+  {
+    protect: true,
+  }
+);
 const invokeProcessArticlePolicy = new aws.iam.Policy(
   "invoke_process_article_policy",
   {
@@ -94,29 +139,7 @@ const invokeProcessArticlePolicy = new aws.iam.Policy(
         {
           Action: "lambda:InvokeFunction",
           Effect: "Allow",
-          Resource:
-            "arn:aws:lambda:eu-west-1:058264093352:function:process-article",
-        },
-      ],
-      Version: "2012-10-17",
-    }),
-  },
-  {
-    protect: true,
-  }
-);
-const invokeSyncFeedDatabasePolicy = new aws.iam.Policy(
-  "invoke_sync_feed_database_policy",
-  {
-    description: "Allows calling the sync-feed-database Lambda function",
-    name: "invoke-sync-feed-database-policy",
-    policy: JSON.stringify({
-      Statement: [
-        {
-          Action: "lambda:InvokeFunction",
-          Effect: "Allow",
-          Resource:
-            "arn:aws:lambda:eu-west-1:058264093352:function:sync-feed-database",
+          Resource: processArticle.arn,
         },
       ],
       Version: "2012-10-17",
@@ -132,6 +155,57 @@ const syncFeedDatabaseLambdaLogGroup = new aws.cloudwatch.LogGroup(
     logGroupClass: "STANDARD",
     name: "/aws/lambda/sync-feed-database",
     retentionInDays: 7,
+  },
+  {
+    protect: true,
+  }
+);
+const lambdaExectutionRole = new aws.iam.Role(
+  "lambda_execution_role",
+  {
+    assumeRolePolicy: JSON.stringify({
+      Statement: [
+        {
+          Action: "sts:AssumeRole",
+          Effect: "Allow",
+          Principal: { Service: "lambda.amazonaws.com" },
+        },
+      ],
+      Version: "2012-10-17",
+    }),
+    inlinePolicies: [
+      {
+        name: "s3-access-policy-article-bucket",
+        policy: JSON.stringify({
+          Version: "2012-10-17",
+          Statement: [
+            {
+              Action: ["s3:GetObject", "s3:PutObject"],
+              Effect: "Allow",
+              Resource: "arn:aws:s3:::lit-feed-dev-article-bucket/*",
+            },
+          ],
+        }),
+      },
+      {
+        name: "s3-access-policy-feed-events-bucket",
+        policy: JSON.stringify({
+          Version: "2012-10-17",
+          Statement: [
+            {
+              Action: ["s3:GetObject", "s3:PutObject"],
+              Effect: "Allow",
+              Resource: "arn:aws:s3:::lit-feed-dev-feed-events-bucket/*",
+            },
+          ],
+        }),
+      },
+    ],
+    managedPolicyArns: [
+      "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
+      "arn:aws:iam::aws:policy/AmazonSSMReadOnlyAccess",
+    ],
+    name: "lambda-execution-role",
   },
   {
     protect: true,
@@ -156,11 +230,34 @@ const syncFeedDatabase = new aws.lambda.Function(
     },
     name: "sync-feed-database",
     packageType: "Zip",
-    role: "arn:aws:iam::058264093352:role/lambda-execution-role",
+    role: lambdaExectutionRole.arn,
     runtime: aws.lambda.Runtime.NodeJS20dX,
     tracingConfig: {
       mode: "PassThrough",
     },
+    code: new pulumi.asset.AssetArchive({
+      ".": new pulumi.asset.FileArchive("./dist/sync-feed-database"),
+    }),
+  },
+  {
+    protect: true,
+  }
+);
+const invokeSyncFeedDatabasePolicy = new aws.iam.Policy(
+  "invoke_sync_feed_database_policy",
+  {
+    description: "Allows calling the sync-feed-database Lambda function",
+    name: "invoke-sync-feed-database-policy",
+    policy: JSON.stringify({
+      Statement: [
+        {
+          Action: "lambda:InvokeFunction",
+          Effect: "Allow",
+          Resource: syncFeedDatabase.arn,
+        },
+      ],
+      Version: "2012-10-17",
+    }),
   },
   {
     protect: true,
@@ -227,19 +324,9 @@ const articleBucket = new aws.s3.BucketV2(
     protect: true,
   }
 );
-const processArticleLambdaLogGroup = new aws.cloudwatch.LogGroup(
-  "process_article_lambda_log_group",
-  {
-    logGroupClass: "STANDARD",
-    name: "/aws/lambda/process-article",
-    retentionInDays: 7,
-  },
-  {
-    protect: true,
-  }
-);
-const processArticle = new aws.lambda.Function(
-  "process_article",
+
+const getArticleScore = new aws.lambda.Function(
+  "get_article_score",
   {
     architectures: ["x86_64"],
     environment: {
@@ -253,68 +340,20 @@ const processArticle = new aws.lambda.Function(
     handler: "index.handler",
     loggingConfig: {
       logFormat: "Text",
-      logGroup: processArticleLambdaLogGroup.id,
+      logGroup: "get-article-score-lambda-log-group",
     },
     memorySize: 512,
-    name: "process-article",
+    name: "get-article-score",
     packageType: "Zip",
-    role: "arn:aws:iam::058264093352:role/lambda-execution-role",
+    role: lambdaExectutionRole.arn,
     runtime: aws.lambda.Runtime.NodeJS20dX,
     timeout: 30,
     tracingConfig: {
       mode: "PassThrough",
     },
-  },
-  {
-    protect: true,
-  }
-);
-const lambdaExectutionRole = new aws.iam.Role(
-  "lambda_execution_role",
-  {
-    assumeRolePolicy: JSON.stringify({
-      Statement: [
-        {
-          Action: "sts:AssumeRole",
-          Effect: "Allow",
-          Principal: { Service: "lambda.amazonaws.com" },
-        },
-      ],
-      Version: "2012-10-17",
+    code: new pulumi.asset.AssetArchive({
+      ".": new pulumi.asset.FileArchive("./dist/get-article-score"),
     }),
-    inlinePolicies: [
-      {
-        name: "s3-access-policy-article-bucket",
-        policy: JSON.stringify({
-          Version: "2012-10-17",
-          Statement: [
-            {
-              Action: ["s3:GetObject", "s3:PutObject"],
-              Effect: "Allow",
-              Resource: "arn:aws:s3:::lit-feed-dev-article-bucket/*",
-            },
-          ],
-        }),
-      },
-      {
-        name: "s3-access-policy-feed-events-bucket",
-        policy: JSON.stringify({
-          Version: "2012-10-17",
-          Statement: [
-            {
-              Action: ["s3:GetObject", "s3:PutObject"],
-              Effect: "Allow",
-              Resource: "arn:aws:s3:::lit-feed-dev-feed-events-bucket/*",
-            },
-          ],
-        }),
-      },
-    ],
-    managedPolicyArns: [
-      "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
-      "arn:aws:iam::aws:policy/AmazonSSMReadOnlyAccess",
-    ],
-    name: "lambda-execution-role",
   },
   {
     protect: true,

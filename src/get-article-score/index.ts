@@ -6,5 +6,7 @@ const s3 = new S3Client();
 export async function handler(request: never) {
   const { articleLink, userId } = request;
 
+  console.log("hi there I am here");
+
   return 0.5;
 }
