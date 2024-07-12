@@ -455,59 +455,47 @@ const trainLikedArticlesLogGroup = new aws.cloudwatch.LogGroup(
   }
 );
 
-const trainLikedArticlesEcrRepository = new aws.ecr.Repository(
-  "train_liked_articles_ecr_repository",
+const lambdaImagesEcrRepository = new aws.ecr.Repository(
+  "lambda_images_ecr_repository",
   {
     imageScanningConfiguration: {
       scanOnPush: true,
     },
     imageTagMutability: "MUTABLE",
     forceDelete: true,
-    name: "train-liked-articles",
-  },
-  {
-    protect: true,
+    name: "lambda-images",
   }
 );
 
 const trainLikedArticlesEcrImage = new awsx.ecr.Image(
   "train_liked_articles_ecr_image",
   {
-    repositoryUrl: trainLikedArticlesEcrRepository.repositoryUrl,
+    repositoryUrl: lambdaImagesEcrRepository.repositoryUrl,
     context: "./src/train-liked-articles",
     platform: "linux/amd64",
-  },
-  {
-    protect: true,
   }
 );
 
-const trainLikedArticles = new aws.lambda.Function(
-  "train_liked_articles",
-  {
-    environment: {
-      variables: {
-        MONGO_URL: "/lit-feed/dev/mongo",
-      },
+const trainLikedArticles = new aws.lambda.Function("train_liked_articles", {
+  environment: {
+    variables: {
+      MONGO_URL: "/lit-feed/dev/mongo",
     },
-    ephemeralStorage: {
-      size: 512,
-    },
-    loggingConfig: {
-      logFormat: "Text",
-      logGroup: trainLikedArticlesLogGroup.id,
-    },
-    memorySize: 3008,
-    name: "train-liked-articles",
-    packageType: "Image",
-    role: lambdaExectutionRole.arn,
-    timeout: 15 * 60,
-    tracingConfig: {
-      mode: "PassThrough",
-    },
-    imageUri: trainLikedArticlesEcrImage.imageUri,
   },
-  {
-    protect: true,
-  }
-);
+  ephemeralStorage: {
+    size: 512,
+  },
+  loggingConfig: {
+    logFormat: "Text",
+    logGroup: trainLikedArticlesLogGroup.id,
+  },
+  memorySize: 3008,
+  name: "train-liked-articles",
+  packageType: "Image",
+  role: lambdaExectutionRole.arn,
+  timeout: 15 * 60,
+  tracingConfig: {
+    mode: "PassThrough",
+  },
+  imageUri: trainLikedArticlesEcrImage.imageUri,
+});
