@@ -100,11 +100,6 @@ const processArticle = new aws.lambda.Function(
   "process_article",
   {
     architectures: ["x86_64"],
-    environment: {
-      variables: {
-        MONGO_URL: "/lit-feed/dev/mongo",
-      },
-    },
     ephemeralStorage: {
       size: 512,
     },
@@ -232,11 +227,6 @@ const syncFeedDatabase = new aws.lambda.Function(
   "sync_feed_database",
   {
     architectures: ["x86_64"],
-    environment: {
-      variables: {
-        MONGO_URL: "/lit-feed/dev/mongo",
-      },
-    },
     ephemeralStorage: {
       size: 512,
     },
@@ -349,11 +339,6 @@ const getArticleScore = new aws.lambda.Function(
   "get_article_score",
   {
     architectures: ["x86_64"],
-    environment: {
-      variables: {
-        MONGO_URL: "/lit-feed/dev/mongo",
-      },
-    },
     ephemeralStorage: {
       size: 512,
     },
@@ -477,11 +462,6 @@ const trainLikedArticlesEcrImage = new awsx.ecr.Image(
 );
 
 const trainLikedArticles = new aws.lambda.Function("train_liked_articles", {
-  environment: {
-    variables: {
-      MONGO_URL: "/lit-feed/dev/mongo",
-    },
-  },
   ephemeralStorage: {
     size: 512,
   },
@@ -524,11 +504,6 @@ const assignScoreToArticlesEcrImage = new awsx.ecr.Image(
 const assignScoreToArticles = new aws.lambda.Function(
   "assign_score_to_articles",
   {
-    environment: {
-      variables: {
-        MONGO_URL: "/lit-feed/dev/mongo",
-      },
-    },
     ephemeralStorage: {
       size: 512,
     },
