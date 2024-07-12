@@ -1,10 +1,10 @@
 #! /usr/bin/env python3
 import pandas as pd
-import io
 import joblib
 import boto3
 import json
 from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.feature_extraction.text import HashingVectorizer
 from sklearn.linear_model import SGDClassifier
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.compose import ColumnTransformer
@@ -35,12 +35,16 @@ def handler(event, context):
     print("pipeline loaded from s3")
   except:
     preprocessor = ColumnTransformer(
-    transformers=[
-      ('txt', TfidfVectorizer(), 'textcontent'),  # Assuming 'textContent' is your text column
-      # ('cat', OneHotEncoder(), ['issaved']),  # Assume 'isSaved' is a categorical feature
-      # ('url', FeatureHasher(n_features=20, input_type='string'), 'feedurl')  # Feature hashing for URLs
-    ])
-    sgd_classifier = SGDClassifier(loss='log_loss') #, max_iter=1000, tol=1e-3)
+      transformers=[
+        ('txt', TfidfVectorizer(), 'textcontent'),
+        ('saved', OneHotEncoder(), ['issaved']),
+        ('title', TfidfVectorizer(), 'title'),
+        ('summary', TfidfVectorizer(), 'summary'), 
+        ('tags', TfidfVectorizer(), 'tags'),
+        ('url', HashingVectorizer(), 'feedurl')
+      ]
+    )
+    sgd_classifier = SGDClassifier(loss='modified_huber') # Replace 'log_loss' with 'modified_huber' or another suitable loss function for skewed data
     pipeline = Pipeline([
       ('preprocessor', preprocessor),
       ('classifier', sgd_classifier)
