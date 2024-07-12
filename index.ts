@@ -372,36 +372,6 @@ const articleBucket = new aws.s3.BucketV2(
   }
 );
 
-const getArticleScore = new aws.lambda.Function(
-  "get_article_score",
-  {
-    architectures: ["x86_64"],
-    ephemeralStorage: {
-      size: 512,
-    },
-    handler: "index.handler",
-    loggingConfig: {
-      logFormat: "Text",
-      logGroup: "get-article-score-lambda-log-group",
-    },
-    memorySize: 512,
-    name: "get-article-score",
-    packageType: "Zip",
-    role: lambdaExectutionRole.arn,
-    runtime: aws.lambda.Runtime.NodeJS20dX,
-    timeout: 30,
-    tracingConfig: {
-      mode: "PassThrough",
-    },
-    code: new pulumi.asset.AssetArchive({
-      ".": new pulumi.asset.FileArchive("./dist/get-article-score"),
-    }),
-  },
-  {
-    protect: true,
-  }
-);
-
 // add a s3 bucket to store the training data pipeline file per user with versions enable and a lifecycle that moves versions older than 3 months to glacier
 const articleTrainingDataBucket = new aws.s3.BucketV2(
   "article_training_data_bucket",
@@ -465,11 +435,11 @@ const articleTrainingDataBucket = new aws.s3.BucketV2(
   }
 );
 
-const assignScoreToArticlesLogGroup = new aws.cloudwatch.LogGroup(
-  "assign_score_to_articles_lambda_log_group",
+const getArticleScoreLogGroup = new aws.cloudwatch.LogGroup(
+  "get_article_score_lambda_log_group",
   {
     logGroupClass: "STANDARD",
-    name: "/aws/lambda/assign-score-to-articles",
+    name: "/aws/lambda/get-article-score",
     retentionInDays: 7,
   },
   {
@@ -477,63 +447,32 @@ const assignScoreToArticlesLogGroup = new aws.cloudwatch.LogGroup(
   }
 );
 
-const assignScoreToArticlesEcrImage = new awsx.ecr.Image(
-  "assign_score_to_articles_ecr_image",
-  {
-    repositoryUrl: lambdaImagesEcrRepository.repositoryUrl,
-    context: "./src/assign-score-to-articles",
-    platform: "linux/amd64",
-  }
-);
+const getArticleScoreImage = new awsx.ecr.Image("get_article_score_ecr_image", {
+  repositoryUrl: lambdaImagesEcrRepository.repositoryUrl,
+  context: "./src/get-article-score",
+  platform: "linux/amd64",
+});
 
-const articleScoresTable = new aws.dynamodb.Table(
-  "article_scores_table",
-  {
-    attributes: [
-      {
-        name: "userId",
-        type: "S",
-      },
-      {
-        name: "articleLink",
-        type: "S",
-      },
-    ],
-    billingMode: "PAY_PER_REQUEST",
-    hashKey: "userId",
-    rangeKey: "articleLink",
+const getArticleScore = new aws.lambda.Function("get_article_score", {
+  environment: {
+    variables: {
+      TRAINING_DATA_BUCKET_NAME: articleTrainingDataBucket.bucket,
+    },
   },
-  {
-    protect: true,
-  }
-);
-
-const assignScoreToArticles = new aws.lambda.Function(
-  "assign_score_to_articles",
-  {
-    environment: {
-      variables: {
-        ARTICLE_SCORES_TABLE: articleScoresTable.name,
-      },
-    },
-    ephemeralStorage: {
-      size: 512,
-    },
-    loggingConfig: {
-      logFormat: "Text",
-      logGroup: assignScoreToArticlesLogGroup.id,
-    },
-    memorySize: 2048,
-    name: "assign-score-to-articles",
-    packageType: "Image",
-    role: lambdaExectutionRole.arn,
-    timeout: 60 * 15,
-    tracingConfig: {
-      mode: "PassThrough",
-    },
-    imageUri: assignScoreToArticlesEcrImage.imageUri,
+  ephemeralStorage: {
+    size: 512,
   },
-  {
-    dependsOn: [articleScoresTable],
-  }
-);
+  loggingConfig: {
+    logFormat: "Text",
+    logGroup: getArticleScoreLogGroup.id,
+  },
+  memorySize: 2048,
+  name: "get-article-score",
+  packageType: "Image",
+  role: lambdaExectutionRole.arn,
+  timeout: 60 * 15,
+  tracingConfig: {
+    mode: "PassThrough",
+  },
+  imageUri: getArticleScoreImage.imageUri,
+});
