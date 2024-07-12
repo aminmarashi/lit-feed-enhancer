@@ -1,4 +1,5 @@
 #! /usr/bin/env python3
+from datetime import timezone
 import pandas as pd
 import joblib
 import boto3
@@ -59,9 +60,10 @@ def handler(event, context):
     athenaCacheFileInformation = s3.get_object(Bucket=bucket_name, Key=key)
     if athenaCacheFileInformation.get('LastModified') is not None:
       athenaCacheFileTimestampFromS3 = athenaCacheFileInformation['LastModified']
+      athenaCacheFileTimestampFromS3 = athenaCacheFileTimestampFromS3.replace(tzinfo=timezone.utc)
     else:
-      athenaCacheFileTimestampFromS3 = pd.Timestamp.now()
-    if (athenaCacheFileTimestampFromS3 - pd.Timestamp.now()).total_seconds() < 86400:
+      athenaCacheFileTimestampFromS3 = pd.Timestamp.now(timezone.utc)
+    if (athenaCacheFileTimestampFromS3 - pd.Timestamp.now(timezone.utc)).total_seconds() < 86400:
       s3.download_file(bucket_name, key, athena_cache_full_filename)
       data = pd.read_csv(athena_cache_full_filename)
       print("pipeline loaded from s3")
@@ -118,3 +120,9 @@ def handler(event, context):
       }
     })
   }
+
+if __name__ == '__main__':
+  result = handler({
+    'userId': '65a90719332e28717a201fef'
+  }, None)
+  print(result)
