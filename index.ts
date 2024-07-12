@@ -499,3 +499,51 @@ const trainLikedArticles = new aws.lambda.Function("train_liked_articles", {
   },
   imageUri: trainLikedArticlesEcrImage.imageUri,
 });
+
+const assignScoreToArticlesLogGroup = new aws.cloudwatch.LogGroup(
+  "assign_score_to_articles_lambda_log_group",
+  {
+    logGroupClass: "STANDARD",
+    name: "/aws/lambda/assign-score-to-articles",
+    retentionInDays: 7,
+  },
+  {
+    protect: true,
+  }
+);
+
+const assignScoreToArticlesEcrImage = new awsx.ecr.Image(
+  "assign_score_to_articles_ecr_image",
+  {
+    repositoryUrl: lambdaImagesEcrRepository.repositoryUrl,
+    context: "./src/assign-score-to-articles",
+    platform: "linux/amd64",
+  }
+);
+
+const assignScoreToArticles = new aws.lambda.Function(
+  "assign_score_to_articles",
+  {
+    environment: {
+      variables: {
+        MONGO_URL: "/lit-feed/dev/mongo",
+      },
+    },
+    ephemeralStorage: {
+      size: 512,
+    },
+    loggingConfig: {
+      logFormat: "Text",
+      logGroup: assignScoreToArticlesLogGroup.id,
+    },
+    memorySize: 2048,
+    name: "assign-score-to-articles",
+    packageType: "Image",
+    role: lambdaExectutionRole.arn,
+    timeout: 60 * 15,
+    tracingConfig: {
+      mode: "PassThrough",
+    },
+    imageUri: assignScoreToArticlesEcrImage.imageUri,
+  }
+);
