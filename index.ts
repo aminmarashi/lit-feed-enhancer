@@ -125,29 +125,6 @@ const processArticle = new aws.lambda.Function(
     protect: true,
   }
 );
-const invokeProcessArticlePolicy = new aws.iam.Policy(
-  "invoke_process_article_policy",
-  {
-    description: "Allows calling the process-article Lambda function",
-    name: "invoke-process-article-policy",
-    policy: processArticle.arn.apply((arn) =>
-      JSON.stringify({
-        Statement: [
-          {
-            Action: "lambda:InvokeFunction",
-            Effect: "Allow",
-            Resource: arn,
-          },
-        ],
-        Version: "2012-10-17",
-      })
-    ),
-  },
-  {
-    protect: true,
-    dependsOn: [processArticle],
-  }
-);
 const syncFeedDatabaseLambdaLogGroup = new aws.cloudwatch.LogGroup(
   "sync_feed_database_lambda_log_group",
   {
@@ -212,6 +189,32 @@ const lambdaExectutionRole = new aws.iam.Role(
           ],
         }),
       },
+      {
+        name: "dynamodb-all-permissions",
+        policy: JSON.stringify({
+          Version: "2012-10-17",
+          Statement: [
+            {
+              Effect: "Allow",
+              Action: ["dynamodb:*"],
+              Resource: "*",
+            },
+          ],
+        }),
+      },
+      {
+        name: "lambda-all-permissions",
+        policy: JSON.stringify({
+          Version: "2012-10-17",
+          Statement: [
+            {
+              Effect: "Allow",
+              Action: ["lambda:*"],
+              Resource: "*",
+            },
+          ],
+        }),
+      },
     ],
     managedPolicyArns: [
       "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
@@ -223,9 +226,66 @@ const lambdaExectutionRole = new aws.iam.Role(
     protect: true,
   }
 );
+
+const trainLikedArticlesLogGroup = new aws.cloudwatch.LogGroup(
+  "train_liked_articles_lambda_log_group",
+  {
+    logGroupClass: "STANDARD",
+    name: "/aws/lambda/train-liked-articles",
+    retentionInDays: 7,
+  },
+  {
+    protect: true,
+  }
+);
+
+const lambdaImagesEcrRepository = new aws.ecr.Repository(
+  "lambda_images_ecr_repository",
+  {
+    imageScanningConfiguration: {
+      scanOnPush: true,
+    },
+    imageTagMutability: "MUTABLE",
+    forceDelete: true,
+    name: "lambda-images",
+  }
+);
+
+const trainLikedArticlesEcrImage = new awsx.ecr.Image(
+  "train_liked_articles_ecr_image",
+  {
+    repositoryUrl: lambdaImagesEcrRepository.repositoryUrl,
+    context: "./src/train-liked-articles",
+    platform: "linux/amd64",
+  }
+);
+
+const trainLikedArticles = new aws.lambda.Function("train_liked_articles", {
+  ephemeralStorage: {
+    size: 512,
+  },
+  loggingConfig: {
+    logFormat: "Text",
+    logGroup: trainLikedArticlesLogGroup.id,
+  },
+  memorySize: 3008,
+  name: "train-liked-articles",
+  packageType: "Image",
+  role: lambdaExectutionRole.arn,
+  timeout: 15 * 60,
+  tracingConfig: {
+    mode: "PassThrough",
+  },
+  imageUri: trainLikedArticlesEcrImage.imageUri,
+});
 const syncFeedDatabase = new aws.lambda.Function(
   "sync_feed_database",
   {
+    environment: {
+      variables: {
+        TRAIN_LIKED_ARTICLES_LAMBDA: trainLikedArticles.arn,
+      },
+    },
     architectures: ["x86_64"],
     ephemeralStorage: {
       size: 512,
@@ -248,29 +308,6 @@ const syncFeedDatabase = new aws.lambda.Function(
   },
   {
     protect: true,
-  }
-);
-const invokeSyncFeedDatabasePolicy = new aws.iam.Policy(
-  "invoke_sync_feed_database_policy",
-  {
-    description: "Allows calling the sync-feed-database Lambda function",
-    name: "invoke-sync-feed-database-policy",
-    policy: syncFeedDatabase.arn.apply((arn) =>
-      JSON.stringify({
-        Statement: [
-          {
-            Action: "lambda:InvokeFunction",
-            Effect: "Allow",
-            Resource: arn,
-          },
-        ],
-        Version: "2012-10-17",
-      })
-    ),
-  },
-  {
-    protect: true,
-    dependsOn: [syncFeedDatabase],
   }
 );
 const articleBucket = new aws.s3.BucketV2(
@@ -427,58 +464,6 @@ const articleTrainingDataBucket = new aws.s3.BucketV2(
     protect: true,
   }
 );
-
-const trainLikedArticlesLogGroup = new aws.cloudwatch.LogGroup(
-  "train_liked_articles_lambda_log_group",
-  {
-    logGroupClass: "STANDARD",
-    name: "/aws/lambda/train-liked-articles",
-    retentionInDays: 7,
-  },
-  {
-    protect: true,
-  }
-);
-
-const lambdaImagesEcrRepository = new aws.ecr.Repository(
-  "lambda_images_ecr_repository",
-  {
-    imageScanningConfiguration: {
-      scanOnPush: true,
-    },
-    imageTagMutability: "MUTABLE",
-    forceDelete: true,
-    name: "lambda-images",
-  }
-);
-
-const trainLikedArticlesEcrImage = new awsx.ecr.Image(
-  "train_liked_articles_ecr_image",
-  {
-    repositoryUrl: lambdaImagesEcrRepository.repositoryUrl,
-    context: "./src/train-liked-articles",
-    platform: "linux/amd64",
-  }
-);
-
-const trainLikedArticles = new aws.lambda.Function("train_liked_articles", {
-  ephemeralStorage: {
-    size: 512,
-  },
-  loggingConfig: {
-    logFormat: "Text",
-    logGroup: trainLikedArticlesLogGroup.id,
-  },
-  memorySize: 3008,
-  name: "train-liked-articles",
-  packageType: "Image",
-  role: lambdaExectutionRole.arn,
-  timeout: 15 * 60,
-  tracingConfig: {
-    mode: "PassThrough",
-  },
-  imageUri: trainLikedArticlesEcrImage.imageUri,
-});
 
 const assignScoreToArticlesLogGroup = new aws.cloudwatch.LogGroup(
   "assign_score_to_articles_lambda_log_group",

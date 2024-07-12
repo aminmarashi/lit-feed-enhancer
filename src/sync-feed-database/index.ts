@@ -1,6 +1,9 @@
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
+import { InvokeCommand, LambdaClient } from "@aws-sdk/client-lambda";
 
 const s3 = new S3Client();
+const lambda = new LambdaClient();
+const trainLikedArticlesLambdaArn = process.env.TRAIN_LIKED_ARTICLES_LAMBDA;
 
 export async function handler(request: never) {
   const year = new Date().getFullYear();
@@ -27,6 +30,30 @@ export async function handler(request: never) {
   };
 
   await s3.send(new PutObjectCommand(s3Params));
-
   console.log("saved event to S3", { s3Key, fullDocument, operationType });
+
+  if (
+    collectionName === "articles" &&
+    operationType === "update" &&
+    ((fullDocument as any).isLiked !== null || (fullDocument as any).isSaved)
+  ) {
+    if (trainLikedArticlesLambdaArn) {
+      // invoke lambda asynchronously
+      console.log(
+        `Invoking article training lambda: ${trainLikedArticlesLambdaArn}`
+      );
+      await lambda.send(
+        new InvokeCommand({
+          FunctionName: trainLikedArticlesLambdaArn,
+          Payload: JSON.stringify(fullDocument),
+          InvocationType: "Event",
+        })
+      );
+      console.log(
+        `Invoked article training lambda: ${trainLikedArticlesLambdaArn}`
+      );
+    } else {
+      console.log("No training lambda configured");
+    }
+  }
 }
