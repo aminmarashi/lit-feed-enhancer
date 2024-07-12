@@ -56,7 +56,11 @@ def handler(event, context):
     print('loaded data from cache')
     key = f'{userId}/{athena_cache_filename}'
     # Check if the athena cache is less than a day old
-    athenaCacheFileTimestampFromS3 = s3.get_object(Bucket=bucket_name, Key=key)['LastModified']
+    athenaCacheFileInformation = s3.get_object(Bucket=bucket_name, Key=key)
+    if athenaCacheFileInformation.get('LastModified') is not None:
+      athenaCacheFileTimestampFromS3 = athenaCacheFileInformation['LastModified']
+    else:
+      athenaCacheFileTimestampFromS3 = pd.Timestamp.now()
     if (athenaCacheFileTimestampFromS3 - pd.Timestamp.now()).total_seconds() < 86400:
       s3.download_file(bucket_name, key, athena_cache_full_filename)
       data = pd.read_csv(athena_cache_full_filename)
