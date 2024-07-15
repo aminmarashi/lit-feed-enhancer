@@ -501,9 +501,36 @@ const assignScoreToArticlesEcrImage = new awsx.ecr.Image(
   }
 );
 
+const articleScoresTable = new aws.dynamodb.Table(
+  "article_scores_table",
+  {
+    attributes: [
+      {
+        name: "userId",
+        type: "S",
+      },
+      {
+        name: "articleLink",
+        type: "S",
+      },
+    ],
+    billingMode: "PAY_PER_REQUEST",
+    hashKey: "userId",
+    rangeKey: "articleLink",
+  },
+  {
+    protect: true,
+  }
+);
+
 const assignScoreToArticles = new aws.lambda.Function(
   "assign_score_to_articles",
   {
+    environment: {
+      variables: {
+        ARTICLE_SCORES_TABLE: articleScoresTable.name,
+      },
+    },
     ephemeralStorage: {
       size: 512,
     },
@@ -520,5 +547,8 @@ const assignScoreToArticles = new aws.lambda.Function(
       mode: "PassThrough",
     },
     imageUri: assignScoreToArticlesEcrImage.imageUri,
+  },
+  {
+    dependsOn: [articleScoresTable],
   }
 );
