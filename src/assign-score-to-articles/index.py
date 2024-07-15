@@ -7,6 +7,7 @@ import json
 import awswrangler as wr
 import os
 
+article_scores_table = os.environ.get('ARTICLE_SCORES_TABLE')
 bucket_name = 'lit-feed-dev-article-training-data'
 pipeline_filename = 'complete_pipeline.joblib'
 athena_cache_filename = 'athena_cache.csv'
@@ -27,9 +28,8 @@ def handler(event, context):
   pipeline = joblib.load(pipeline_full_filename)
   print("pipeline loaded from s3")
 
-  print('Loading training data from s3')
+  print('Loading training data')
   if os.path.exists(athena_cache_full_filename):
-    print('loaded data from cache')
     key = f'{userId}/{athena_cache_filename}'
     athenaCacheFileInformation = s3.get_object(Bucket=bucket_name, Key=key)
     if athenaCacheFileInformation.get('LastModified') is not None:
@@ -41,19 +41,19 @@ def handler(event, context):
     if (athenaCacheFileTimestampFromS3 - pd.Timestamp.now(timezone.utc)).total_seconds() < 60:
       s3.download_file(bucket_name, key, athena_cache_full_filename)
       data = pd.read_csv(athena_cache_full_filename)
-      print("pipeline loaded from s3")
+      print("Data loaded from cache")
     else:
       query = f"select distinct b.link, u.title, b.tags, b.textcontent, u.userid, u.issaved, u.isliked, u.isread, b.summary, u.feedurl from default.user_articles u join default.backend_articles b on u.href = b.link where u.userId = '{userId}'"
       data = wr.athena.read_sql_query(query, database='default')
       data.to_csv(athena_cache_full_filename, index=False)
       s3.upload_file(athena_cache_full_filename, bucket_name, f'{userId}/{athena_cache_filename}')
-      print('loaded data from Athena')
+      print('Data loaded from Athena')
   else:
     query = f"select distinct b.link, u.title, b.tags, b.textcontent, u.userid, u.issaved, u.isliked, u.isread, b.summary, u.feedurl from default.user_articles u join default.backend_articles b on u.href = b.link where u.userId = '{userId}'"
     data = wr.athena.read_sql_query(query, database='default')
     data.to_csv(athena_cache_full_filename, index=False)
     s3.upload_file(athena_cache_full_filename, bucket_name, f'{userId}/{athena_cache_filename}')
-    print('loaded data from Athena')
+    print('Data loaded from Athena')
 
   data['textcontent'] = data['textcontent'].fillna('').astype(str)
   data['tags'] = data['tags'].fillna('').astype(str)
@@ -64,35 +64,35 @@ def handler(event, context):
 
   probabilities = pipeline.predict_proba(data)
   
-  liked_articles = []
-  disliked_articles = []
-  neutral_articles = []
-  for i, prediction in enumerate(predictions):
-    if prediction == 1:
-      liked_articles.append({
-        'link': data.iloc[i]['link'],
-        'probability': probabilities[i][1]
-      })
-    elif prediction == -1:
-      disliked_articles.append({
-        'link': data.iloc[i]['link'],
-        'probability': probabilities[i][-1]
-      })
-    else:
-      neutral_articles.append({
-        'link': data.iloc[i]['link'],
-        'probability': probabilities[i][0]
-      })
+  articleProbabilities = {}
+  for i, probability in enumerate(probabilities):
+    articleProbabilities[data.iloc[i]['link']] = {
+      '-1': str(probability[0]),
+      '0': str(probability[1]),
+      '1': str(probability[2])
+    }
 
+  if article_scores_table is not None:
+    print('Writing probabilities to DynamoDB')
+    dynamodb = boto3.resource('dynamodb')
+    table = dynamodb.Table(article_scores_table)
+    with table.batch_writer() as batch:
+      for link, probabilities in articleProbabilities.items():
+        batch.put_item(
+          Item={
+            'userId': userId,
+            'articleLink': link,
+            'probabilities': probabilities
+          }
+        )
+    print('Predictions written to DynamoDB')
 
   return {
     'statusCode': 200,
     'body': json.dumps({
       'message': 'Predictions completed successfully',
       'userId': userId,
-      'liked_articles': liked_articles,
-      'disliked_articles': disliked_articles,
-      'neutral_articles': neutral_articles
+      'articleProbabilities': articleProbabilities
     })
   }
 
