@@ -1,7 +1,13 @@
 name: lit-feed-enhancer
-runtime: nodejs
+runtime:
+  name: nodejs
+  options:
+    packagemanager: pnpm
 config:
   aws:profile:
     value: dev
   aws:region:
     value: eu-west-1
+  pulumi:tags:
+    value:
+      pulumi:template: typescript
