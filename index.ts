@@ -14,6 +14,20 @@ const lambdaRunUser = new aws.iam.User(
     protect: true,
   }
 );
+const lambdaRunUserPolicy = new aws.iam.UserPolicy("lambda_run_user_policy", {
+  name: "lambda-run-user-policy",
+  user: lambdaRunUser.name,
+  policy: JSON.stringify({
+    Version: "2012-10-17",
+    Statement: [
+      {
+        Action: ["lambda:*"],
+        Effect: "Allow",
+        Resource: "*",
+      },
+    ],
+  }),
+});
 const lambdaUserAccessKey = new aws.iam.AccessKey(
   "lambda_user_access_key",
   {
