@@ -20,6 +20,11 @@ export async function makeArticleSummary(fullDocument: ArticleType) {
     return fullDocument;
   }
 
+  if (summary.length < 50) {
+    console.warn("Summary too short", { url, summary });
+    return fullDocument;
+  }
+
   console.info("Summary created", { url, summary });
 
   return {
