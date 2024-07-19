@@ -52,18 +52,16 @@ def handler(event, context):
     article['summary'] = ''
   article['title'] = article['title'].fillna('').astype(str)
 
-  prediction = pipeline.predict(article)
   probabilities = pipeline.predict_proba(article)
-  print(f'Prediction: {prediction}')
   print(f'Probabilities: {probabilities}')
   
   return {
     'statusCode': 200,
-    'body': json.dumps({
-      '-1': probabilities[0][0],
-      '0': probabilities[0][1],
-      '1': probabilities[0][2],
-    })
+    'body': {
+      'dislike': probabilities[0][0],
+      'neutral': probabilities[0][1],
+      'like': probabilities[0][2],
+    }
   }
 
 if __name__ == '__main__':
