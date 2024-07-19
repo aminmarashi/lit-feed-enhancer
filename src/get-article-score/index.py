@@ -38,19 +38,31 @@ def handler(event, context):
 
   article['issaved'] = article['isSaved'].fillna(False).astype(bool)
   article['feedurl'] = article['feedUrl'].fillna('').astype(str)
-  article['textcontent'] = article['content'].fillna('').astype(str)
-  article['tags'] = article['tags'].fillna('').astype(str)
-  article['summary'] = article['summary'].fillna('').astype(str)
+  if 'content' in article:
+    article['textcontent'] = article['content'].fillna('').astype(str)
+  else:
+    article['textcontent'] = ''
+  if 'tags' in article:
+    article['tags'] = article['tags'].fillna('').astype(str)
+  else:
+    article['tags'] = ''
+  if 'summary' in article:
+    article['summary'] = article['summary'].fillna('').astype(str)
+  else:
+    article['summary'] = ''
   article['title'] = article['title'].fillna('').astype(str)
 
+  prediction = pipeline.predict(article)
   probabilities = pipeline.predict_proba(article)
+  print(f'Prediction: {prediction}')
+  print(f'Probabilities: {probabilities}')
   
   return {
     'statusCode': 200,
     'body': json.dumps({
-      '1': probabilities[0][1],
-      '0': probabilities[0][0],
-      '-1': probabilities[0][2]
+      '-1': probabilities[0][0],
+      '0': probabilities[0][1],
+      '1': probabilities[0][2],
     })
   }
 
