@@ -39,7 +39,7 @@ async function requestGPTSummary({
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       body: JSON.stringify({
-        model: "gpt-3.5-turbo",
+        model: "gpt-4o-mini",
         messages: [
           {
             role: "system",

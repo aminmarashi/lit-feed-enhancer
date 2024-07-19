@@ -54,7 +54,7 @@ async function requestGPTKeywords(keywords: string[]): Promise<string[]> {
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
       body: JSON.stringify({
-        model: "gpt-3.5-turbo", // Model 3.5 Turbo
+        model: "gpt-4o-mini",
         messages: [
           {
             role: "system",
