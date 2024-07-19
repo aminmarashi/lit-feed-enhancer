@@ -36,7 +36,9 @@ def handler(event, context):
   pipeline = joblib.load(pipeline_full_filename)
   ## Todo handle when there is no pipeline in s3
 
-  article['content'] = article['content'].fillna('').astype(str)
+  article['issaved'] = article['isSaved'].fillna(False).astype(bool)
+  article['feedurl'] = article['feedUrl'].fillna('').astype(str)
+  article['textcontent'] = article['content'].fillna('').astype(str)
   article['tags'] = article['tags'].fillna('').astype(str)
   article['summary'] = article['summary'].fillna('').astype(str)
   article['title'] = article['title'].fillna('').astype(str)
@@ -48,7 +50,7 @@ def handler(event, context):
     'body': json.dumps({
       '1': probabilities[0][1],
       '0': probabilities[0][0],
-      '1': probabilities[0][2]
+      '-1': probabilities[0][2]
     })
   }
 
