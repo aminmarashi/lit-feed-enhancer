@@ -12,7 +12,8 @@ lambda_tmp_dir = '/tmp'
 pipeline_full_filename = f'{lambda_tmp_dir}/{pipeline_filename}'
 
 def handler(event, context):
-  article = pd.DataFrame(event, index=[0])
+  print(f'Event: {event}')
+  article = pd.DataFrame([event])
   userId = event['userId']
 
   # Check the lit-feed-dev-article-models bucket for the model
