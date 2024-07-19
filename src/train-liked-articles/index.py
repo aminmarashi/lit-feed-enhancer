@@ -90,7 +90,7 @@ def handler(event, context):
   # rows_to_drop = data[mask].sample(frac=0.7).index
   # data = data.drop(index=rows_to_drop)
     
-  y = data['isliked'].apply(lambda x: 0 if pd.isna(x) else 1 if x else -1)
+  y = data['isliked'].apply(lambda x: 0 if x is None else 1 if x else -1)
   # If issaved is True, set y to 1
   y = y.where(data['issaved'] == False, 1) # change to 1 if saved is true
 
