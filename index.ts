@@ -283,7 +283,7 @@ const trainLikedArticles = new aws.lambda.Function("train_liked_articles", {
     logGroup: trainLikedArticlesLogGroup.id,
   },
   memorySize: 3008,
-  name: "train-liked-articles",
+  name: "train-liked-articles-fixed",
   packageType: "Image",
   role: lambdaExectutionRole.arn,
   timeout: 15 * 60,
@@ -292,38 +292,32 @@ const trainLikedArticles = new aws.lambda.Function("train_liked_articles", {
   },
   imageUri: trainLikedArticlesEcrImage.imageUri,
 });
-const syncFeedDatabase = new aws.lambda.Function(
-  "sync_feed_database",
-  {
-    environment: {
-      variables: {
-        TRAIN_LIKED_ARTICLES_LAMBDA: trainLikedArticles.arn,
-      },
+const syncFeedDatabase = new aws.lambda.Function("sync_feed_database", {
+  environment: {
+    variables: {
+      TRAIN_LIKED_ARTICLES_LAMBDA: trainLikedArticles.arn,
     },
-    architectures: ["x86_64"],
-    ephemeralStorage: {
-      size: 512,
-    },
-    handler: "index.handler",
-    loggingConfig: {
-      logFormat: "Text",
-      logGroup: syncFeedDatabaseLambdaLogGroup.id,
-    },
-    name: "sync-feed-database",
-    packageType: "Zip",
-    role: lambdaExectutionRole.arn,
-    runtime: aws.lambda.Runtime.NodeJS20dX,
-    tracingConfig: {
-      mode: "PassThrough",
-    },
-    code: new pulumi.asset.AssetArchive({
-      ".": new pulumi.asset.FileArchive("./dist/sync-feed-database"),
-    }),
   },
-  {
-    protect: true,
-  }
-);
+  architectures: ["x86_64"],
+  ephemeralStorage: {
+    size: 512,
+  },
+  handler: "index.handler",
+  loggingConfig: {
+    logFormat: "Text",
+    logGroup: syncFeedDatabaseLambdaLogGroup.id,
+  },
+  name: "sync-feed-database-fixed",
+  packageType: "Zip",
+  role: lambdaExectutionRole.arn,
+  runtime: aws.lambda.Runtime.NodeJS20dX,
+  tracingConfig: {
+    mode: "PassThrough",
+  },
+  code: new pulumi.asset.AssetArchive({
+    ".": new pulumi.asset.FileArchive("./dist/sync-feed-database"),
+  }),
+});
 const articleBucket = new aws.s3.BucketV2(
   "article_bucket",
   {

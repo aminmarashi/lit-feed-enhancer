@@ -16,24 +16,43 @@ import os
 
 bucket_name = 'lit-feed-dev-article-training-data'
 pipeline_filename = 'complete_pipeline.joblib'
-athena_cache_filename = 'athena_cache.csv'
 lambda_tmp_dir = '/tmp'
 pipeline_full_filename = f'{lambda_tmp_dir}/{pipeline_filename}'
-athena_cache_full_filename = f'{lambda_tmp_dir}/{athena_cache_filename}'
 
 def handler(event, context):
-  # Get userId from the event
-  userId = event['userId']
+  article = event
+  userId = article['userId']
+  if 'isSaved' in article:
+    article['issaved'] = article['isSaved']
+    article.pop('isSaved')
+  if 'isLiked' in article:
+    article['isliked'] = article['isLiked']
+    article.pop('isLiked')
+  if 'isRead' in article:
+    article['isread'] = article['isRead']
+    article.pop('isRead')
+  if 'feedUrl' in article:
+    article['feedurl'] = article['feedUrl']
+    article.pop('feedUrl')
+  if 'content' in article:
+    article['textcontent'] = article['content']
+    article.pop('content')
 
   # Check the lit-feed-dev-article-models bucket for the model
   boto3.setup_default_session()
   s3 = boto3.client('s3')
   print('Loading pipeline from S3')
+  shouldLoadFromScratch = True
   try:
-    key = f'{userId}/{pipeline_filename}'
-    s3.download_file(bucket_name, key, pipeline_full_filename)
-    pipeline = joblib.load(pipeline_full_filename)
-    print("pipeline loaded from s3")
+    if os.path.exists(pipeline_full_filename):
+      pipeline = joblib.load(pipeline_full_filename)
+      print("Pipeline loaded from /tmp")
+    else:
+      key = f'{userId}/{pipeline_filename}'
+      s3.download_file(bucket_name, key, pipeline_full_filename)
+      pipeline = joblib.load(pipeline_full_filename)
+      print("pipeline loaded from s3")
+    shouldLoadFromScratch = False
   except:
     preprocessor = ColumnTransformer(
       transformers=[
@@ -45,52 +64,28 @@ def handler(event, context):
         ('url', HashingVectorizer(), 'feedurl')
       ]
     )
-    sgd_classifier = SGDClassifier(loss='modified_huber') # Replace 'log_loss' with 'modified_huber' or another suitable loss function for skewed data
+    sgd_classifier = SGDClassifier(loss='modified_huber', class_weight={-1: 1, 0: 0.01, 1: 1})
     pipeline = Pipeline([
       ('preprocessor', preprocessor),
       ('classifier', sgd_classifier)
     ])
     print('pipeline created from scratch')
-
-  print('Loading training data from s3')
-  if os.path.exists(athena_cache_full_filename):
-    print('loaded data from cache')
-    key = f'{userId}/{athena_cache_filename}'
-    # Check if the athena cache is less than a day old
-    athenaCacheFileInformation = s3.get_object(Bucket=bucket_name, Key=key)
-    if athenaCacheFileInformation.get('LastModified') is not None:
-      athenaCacheFileTimestampFromS3 = athenaCacheFileInformation['LastModified']
-      athenaCacheFileTimestampFromS3 = athenaCacheFileTimestampFromS3.replace(tzinfo=timezone.utc)
-    else:
-      athenaCacheFileTimestampFromS3 = pd.Timestamp.now(timezone.utc)
-    if (athenaCacheFileTimestampFromS3 - pd.Timestamp.now(timezone.utc)).total_seconds() < 86400:
-      s3.download_file(bucket_name, key, athena_cache_full_filename)
-      data = pd.read_csv(athena_cache_full_filename)
-      print("pipeline loaded from s3")
-    else:
-      query = f"select distinct b.link, u.title, b.tags, b.textcontent, u.userid, u.issaved, u.isliked, u.isread, b.summary, u.feedurl from default.user_articles u join default.backend_articles b on u.href = b.link where u.userId = '{userId}'"
-      data = wr.athena.read_sql_query(query, database='default')
-      data.to_csv(athena_cache_full_filename, index=False)
-      s3.upload_file(athena_cache_full_filename, bucket_name, f'{userId}/{athena_cache_filename}')
-      print('loaded data from Athena')
-  else:
+  
+  if shouldLoadFromScratch:
+    print('Loading training data from Athena')
     query = f"select distinct b.link, u.title, b.tags, b.textcontent, u.userid, u.issaved, u.isliked, u.isread, b.summary, u.feedurl from default.user_articles u join default.backend_articles b on u.href = b.link where u.userId = '{userId}'"
     data = wr.athena.read_sql_query(query, database='default')
-    data.to_csv(athena_cache_full_filename, index=False)
-    s3.upload_file(athena_cache_full_filename, bucket_name, f'{userId}/{athena_cache_filename}')
     print('loaded data from Athena')
+  else:
+    print('Training data loaded from the event')
+    data = pd.DataFrame([article])
 
   data['textcontent'] = data['textcontent'].fillna('').astype(str)
   data['tags'] = data['tags'].fillna('').astype(str)
   data['summary'] = data['summary'].fillna('').astype(str)
   data['title'] = data['title'].fillna('').astype(str)
 
-
-  # mask = data['isliked'].isna()
-  # rows_to_drop = data[mask].sample(frac=0.7).index
-  # data = data.drop(index=rows_to_drop)
-    
-  y = data['isliked'].apply(lambda x: 0 if x is None else 1 if x else -1)
+  y = data['isliked'].apply(lambda x: 0 if pd.isna(x) else 1 if x else -1)
   # If issaved is True, set y to 1
   y = y.where(data['issaved'] == False, 1) # change to 1 if saved is true
 
@@ -101,7 +96,18 @@ def handler(event, context):
   print(f"y = 1: {len(y_equal_1)}")
   print(f"y = 0: {len(y_equal_0)}")
   print(f"y = -1: {len(y_equal_m1)}")
-  pipeline.fit(data, y)
+
+  classes = [-1, 0, 1]  # Ensure all classes are represented in the partial_fit call
+  if shouldLoadFromScratch:
+    pipeline.fit(data, y)
+  else:
+    preprocessor = pipeline.named_steps['preprocessor']
+    classifier = pipeline.named_steps['classifier']
+
+    X_transformed = preprocessor.transform(data)
+
+    classifier.partial_fit(X_transformed, y, classes=classes)
+
 
   # Save the model and vectorizer back to S3
   print('Saving the data in S3')
@@ -123,6 +129,29 @@ def handler(event, context):
 
 if __name__ == '__main__':
   result = handler({
-    'userId': '65a90719332e28717a201fef'
+    'articleId': '65e1909c15e55e8deb1fd47e',
+    'feedUrl': 'https://hnrss.org/newest?points=100',
+    'href': 'https://twitter.com/nixcraft/status/1763124892986474689',
+    'content': 'article url: https://twitter.com/nixcraft/status/1763124892986474689\n' +
+      'comments url: https://news.ycombinator.com/item?id=39558365\n' +
+      'points: 162\n' +
+      '# comments: 69',
+    'createdAt': '2024-03-01t08:23:55.158z',
+    'date': '2024-03-01t03:53:26.000z',
+    'isRead': True,
+    'isSaved': False,
+    'summary': 'article url: https://twitter.com/nixcraft/status/1763124892986474689\n' +
+      'comments url: https://news.ycombinator.com/item?id=39558365\n' +
+      'points: 162\n' +
+      '# comments: 69',
+    'title': 'docusign just admitted that they use customer data to train ai',
+    'updatedAt': '2024-05-17t06:02:40.239z',
+    'feedId': '65e03508114dfe73e550d0b3',
+    'feedName': 'hn 100',
+    'synchedAt': '2024-03-05t08:53:34.086z',
+    'isLiked': None,
+    'userId': '65a90719332e28717a201fef',
+    'tags': None,
+    'openDuration': 8578928
   }, None)
   print(result)

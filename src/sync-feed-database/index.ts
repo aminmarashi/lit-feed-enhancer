@@ -32,11 +32,7 @@ export async function handler(request: never) {
   await s3.send(new PutObjectCommand(s3Params));
   console.log("saved event to S3", { s3Key, fullDocument, operationType });
 
-  if (
-    collectionName === "articles" &&
-    operationType === "update" &&
-    ((fullDocument as any).isLiked !== null || (fullDocument as any).isSaved)
-  ) {
+  if (collectionName === "articles" && operationType === "update") {
     if (trainLikedArticlesLambdaArn) {
       // invoke lambda asynchronously
       console.log(
