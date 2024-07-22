@@ -36,9 +36,6 @@ def handler(event, context):
   pipeline = joblib.load(pipeline_full_filename)
   ## Todo handle when there is no pipeline in s3
 
-  articles['createdat'] = pd.to_datetime(articles['createdAt'])
-  articles['date'] = pd.to_datetime(articles['date'])
-  articles['updatedat'] = pd.to_datetime(articles['updatedAt'])
   articles['feedurl'] = articles['feedUrl'].fillna('').astype(str)
   articles['isread'] = articles['isRead'].astype(bool)
   articles['issaved'] = articles['isSaved'].astype(bool)
@@ -52,10 +49,10 @@ def handler(event, context):
   else:
     articles['summary'] = ''
   if 'tags' in articles.columns:
-    articles['tags'] = articles['tags'].fillna('').astype(str)
+    articles['tags'] = articles['tags'].fillna('[]').astype(str)
   else:
-    articles['tags'] = ''
-  articles.drop(['content', 'isRead', 'isSaved', 'isLiked', 'createdAt', 'updatedAt', 'feedUrl'], axis=1, inplace=True)
+    articles['tags'] = '[]'
+  articles = articles.drop(['_id', 'date', 'feedUrl', 'isRead', 'isSaved', 'isLiked', 'content', 'synchedAt', 'updatedAt', 'createdAt'], axis=1, errors='ignore')
 
 
   preprocessor = pipeline.named_steps['preprocessor']
