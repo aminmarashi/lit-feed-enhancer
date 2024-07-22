@@ -70,9 +70,9 @@ def handler(event, context):
 
   result = {}
   for i in range(len(class_labels)):
-    if class_labels[i] == -1:
+    if str(class_labels[i]) == '-1':
       result['dislike'] = probabilities[0][i]
-    elif class_labels[i] == 0:
+    elif str(class_labels[i]) == '0':
       result['neutral'] = probabilities[0][i]
     else:
       result['like'] = probabilities[0][i]
@@ -83,5 +83,5 @@ def handler(event, context):
   }
 
 if __name__ == '__main__':
-  result = handler({'_id': '669ca9a52bb30006432860bc', 'feedUrl': 'https://hnrss.org/newest?points=10', 'href': 'https://x.com/', 'userId': '65a90719332e28717a201fef', 'content': '\n<p>Article URL: <a href="https://x.com/">https://x.com/</a></p>\n<p>Comments URL: <a href="https://news.ycombinator.com/item?id=41022408">https://news.ycombinator.com/item?id=41022408</a></p>\n<p>Points: 80</p>\n<p># Comments: 66</p>\n', 'createdAt': '2024-07-21T06:24:37.774Z', 'date': '2024-07-21T04:37:28.000Z', 'isLiked': True, 'isRead': True, 'isSaved': False, 'synchedAt': '2024-07-21T06:24:37.988Z', 'title': 'X.com refuses to open with Firefox strict tracking protection enabled', 'updatedAt': '2024-07-21T06:59:11.428Z'}, None)
+  result = handler({'_id': '669ea2ef2bb30006436b8018', 'feedUrl': 'https://hnrss.org/newest?points=10', 'href': 'https://www.wsj.com/lifestyle/relationships/americans-babies-childless-birthrate-daf438f9', 'userId': '65a90719332e28717a201fef', 'content': '\n<p>Article URL: <a href="https://www.wsj.com/lifestyle/relationships/americans-babies-childless-birthrate-daf438f9">https://www.wsj.com/lifestyle/relationships/americans-babies-childless-birthrate-daf438f9</a></p>\n<p>Comments URL: <a href="https://news.ycombinator.com/item?id=41037116">https://news.ycombinator.com/item?id=41037116</a></p>\n<p>Points: 16</p>\n<p># Comments: 61</p>\n', 'createdAt': '2024-07-22T18:20:30.952Z', 'date': '2024-07-22T17:38:14.000Z', 'isLiked': None, 'isRead': False, 'isSaved': False, 'synchedAt': '2024-07-22T18:20:31.154Z', 'title': "Why Americans Aren't Having Babies", 'updatedAt': '2024-07-22T18:20:30.952Z'}, None)
   print(result)
