@@ -36,37 +36,50 @@ def handler(event, context):
   pipeline = joblib.load(pipeline_full_filename)
   ## Todo handle when there is no pipeline in s3
 
-  articles['isread'] = articles['isRead']
-  articles['userid'] = articles['userId']
-  articles['isliked'] = articles['isLiked']
-  articles['issaved'] = articles['isSaved'].fillna(False).astype(bool)
+  articles['createdat'] = pd.to_datetime(articles['createdAt'])
+  articles['date'] = pd.to_datetime(articles['date'])
+  articles['updatedat'] = pd.to_datetime(articles['updatedAt'])
   articles['feedurl'] = articles['feedUrl'].fillna('').astype(str)
-  [articles.pop(key) for key in ['isLiked', 'isSaved', 'feedUrl', 'userId', 'isRead']]
-  if 'content' in articles:
+  articles['isread'] = articles['isRead'].astype(bool)
+  articles['issaved'] = articles['isSaved'].astype(bool)
+  articles['isliked'] = articles['isLiked'].astype(bool)
+  if 'content' in articles.columns:
     articles['textcontent'] = articles['content'].fillna('').astype(str)
-    articles.pop('content')
   else:
     articles['textcontent'] = ''
-  if 'tags' in articles:
-    articles['tags'] = articles['tags'].fillna('').astype(str)
-  else:
-    articles['tags'] = ''
-  if 'summary' in articles:
+  if 'summary' in articles.columns:
     articles['summary'] = articles['summary'].fillna('').astype(str)
   else:
     articles['summary'] = ''
-  articles['title'] = articles['title'].fillna('').astype(str)
+  if 'tags' in articles.columns:
+    articles['tags'] = articles['tags'].fillna('').astype(str)
+  else:
+    articles['tags'] = ''
+  articles.drop(['content', 'isRead', 'isSaved', 'isLiked', 'createdAt', 'updatedAt', 'feedUrl'], axis=1, inplace=True)
 
-  probabilities = pipeline.predict_proba(articles)
+
+  preprocessor = pipeline.named_steps['preprocessor']
+  classifier = pipeline.named_steps['classifier']
+
+  X_transformed = preprocessor.transform(articles)
+
+  probabilities = classifier.predict_proba(X_transformed)
+  class_labels = classifier.classes_
   print(f'Probabilities: {probabilities}')
+  print(f'Class labels: {class_labels}')
+
+  result = {}
+  for i in range(len(class_labels)):
+    if class_labels[i] == -1:
+      result['dislike'] = probabilities[0][i]
+    elif class_labels[i] == 0:
+      result['neutral'] = probabilities[0][i]
+    else:
+      result['like'] = probabilities[0][i]
   
   return {
     'statusCode': 200,
-    'body': {
-      'dislike': probabilities[0][0],
-      'neutral': probabilities[0][1],
-      'like': probabilities[0][2],
-    }
+    'body': result
   }
 
 if __name__ == '__main__':
