@@ -13,6 +13,8 @@ from sklearn.feature_extraction import FeatureHasher
 from sklearn.pipeline import Pipeline
 import awswrangler as wr
 import os
+import numpy as np
+from sklearn.utils.class_weight import compute_class_weight
 
 bucket_name = 'lit-feed-dev-article-training-data'
 pipeline_filename = 'complete_pipeline.joblib'
@@ -54,22 +56,7 @@ def handler(event, context):
       print("pipeline loaded from s3")
     shouldLoadFromScratch = False
   except:
-    preprocessor = ColumnTransformer(
-      transformers=[
-        ('txt', TfidfVectorizer(), 'textcontent'),
-        ('saved', OneHotEncoder(), ['issaved']),
-        ('title', TfidfVectorizer(), 'title'),
-        ('summary', TfidfVectorizer(), 'summary'), 
-        ('tags', TfidfVectorizer(), 'tags'),
-        ('url', HashingVectorizer(), 'feedurl')
-      ]
-    )
-    sgd_classifier = SGDClassifier(loss='modified_huber', class_weight={-1: 1, 0: 0.01, 1: 1})
-    pipeline = Pipeline([
-      ('preprocessor', preprocessor),
-      ('classifier', sgd_classifier)
-    ])
-    print('pipeline created from scratch')
+    print('Pipeline will have to be created from scratch')
   
   if shouldLoadFromScratch:
     print('Loading training data from Athena')
@@ -83,9 +70,8 @@ def handler(event, context):
   data['textcontent'] = data['textcontent'].fillna('').astype(str)
   data['tags'] = data['tags'].fillna('').astype(str)
   data['summary'] = data['summary'].fillna('').astype(str)
-  data['title'] = data['title'].fillna('').astype(str)
 
-  y = data['isliked'].apply(lambda x: 0 if pd.isna(x) else 1 if x else -1)
+  y = data['isliked'].apply(lambda x: 0 if pd.isna(x) or x == None else 1 if x else -1)
   # If issaved is True, set y to 1
   y = y.where(data['issaved'] == False, 1) # change to 1 if saved is true
 
@@ -99,6 +85,25 @@ def handler(event, context):
 
   classes = [-1, 0, 1]  # Ensure all classes are represented in the partial_fit call
   if shouldLoadFromScratch:
+    preprocessor = ColumnTransformer(
+      transformers=[
+        ('txt', TfidfVectorizer(), 'textcontent'),
+        ('saved', OneHotEncoder(), ['issaved']),
+        ('title', TfidfVectorizer(), 'title'),
+        ('summary', TfidfVectorizer(), 'summary'), 
+        ('tags', TfidfVectorizer(), 'tags'),
+        ('url', HashingVectorizer(), 'feedurl')
+      ]
+    )
+    numpy_classes = np.array(classes)
+    class_weights = compute_class_weight(class_weight='balanced', classes=numpy_classes, y=y) 
+    class_weights_dict = dict(zip(numpy_classes, class_weights))
+    sgd_classifier = SGDClassifier(loss='modified_huber', class_weight=class_weights_dict)
+    pipeline = Pipeline([
+      ('preprocessor', preprocessor),
+      ('classifier', sgd_classifier)
+    ])
+    print('pipeline created from scratch')
     pipeline.fit(data, y)
   else:
     preprocessor = pipeline.named_steps['preprocessor']
