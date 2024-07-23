@@ -1,5 +1,4 @@
 #! /usr/bin/env python3
-from datetime import timezone
 import pandas as pd
 import joblib
 import boto3
@@ -9,12 +8,12 @@ from sklearn.feature_extraction.text import HashingVectorizer
 from sklearn.linear_model import SGDClassifier
 from sklearn.preprocessing import OneHotEncoder
 from sklearn.compose import ColumnTransformer
-from sklearn.feature_extraction import FeatureHasher
 from sklearn.pipeline import Pipeline
 import awswrangler as wr
 import os
 import numpy as np
 from sklearn.utils.class_weight import compute_class_weight
+from imblearn.over_sampling import RandomOverSampler
 
 bucket_name = 'lit-feed-dev-article-training-data'
 pipeline_filename = 'complete_pipeline.joblib'
@@ -104,7 +103,13 @@ def handler(event, context):
       ('classifier', sgd_classifier)
     ])
     print('pipeline created from scratch')
-    pipeline.fit(data, y)
+
+    # Oversampling
+    print("Starting oversampling")
+    ros = RandomOverSampler(sampling_strategy='auto')
+    data_resampled, y_resampled = ros.fit_resample(data, y)
+
+    pipeline.fit(data_resampled, y_resampled)
   else:
     preprocessor = pipeline.named_steps['preprocessor']
     classifier = pipeline.named_steps['classifier']

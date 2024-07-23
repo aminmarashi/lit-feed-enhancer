@@ -1,5 +1,4 @@
 #! /usr/bin/env python3
-from datetime import timezone
 import pandas as pd
 import joblib
 import boto3

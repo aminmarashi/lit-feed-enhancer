@@ -4,3 +4,4 @@ pandas
 boto3
 joblib
 awswrangler
+imblearn
