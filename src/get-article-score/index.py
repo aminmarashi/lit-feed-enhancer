@@ -34,6 +34,7 @@ def handler(event, context):
       }
   pipeline = joblib.load(pipeline_full_filename)
   ## Todo handle when there is no pipeline in s3
+  expected_keys =['link', 'title', 'tags', 'textcontent', 'userid', 'issaved', 'isliked', 'isread', 'summary', 'feedurl'] 
 
   articles['link'] = articles['href'].fillna('').astype(str)
   articles['feedurl'] = articles['feedUrl'].fillna('').astype(str)
@@ -53,7 +54,10 @@ def handler(event, context):
     articles['tags'] = articles['tags'].fillna('[]').astype(str)
   else:
     articles['tags'] = '[]'
-  articles = articles.drop(['_id', 'href', 'date', 'feedUrl', 'isRead', 'isSaved', 'isLiked', 'content', 'synchedAt', 'updatedAt', 'createdAt'], axis=1, errors='ignore')
+
+  for column in articles.columns:
+    if column not in expected_keys:
+      articles.drop(column, axis=1, inplace=True, errors='ignore')
 
 
   preprocessor = pipeline.named_steps['preprocessor']
