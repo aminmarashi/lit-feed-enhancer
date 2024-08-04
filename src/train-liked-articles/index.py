@@ -25,7 +25,7 @@ athena_cache_full_filename = f'{lambda_tmp_dir}/{athena_cache_filename}'
 pipeline_full_filename = f'{lambda_tmp_dir}/{pipeline_filename}'
 is_test_run = os.environ.get('TEST_RUN', 'False') == 'True'
 testing_sample_fraction = float(os.environ.get('TESTING_SAMPLE_FRACTION', '0.2'))
-like_bias = float(os.environ.get('LIKE_BIAS', '1'))
+like_bias = float(os.environ.get('LIKE_BIAS', '300'))
 dislike_bias = float(os.environ.get('DISLIKE_BIAS', '300'))
 neutral_bias = float(os.environ.get('NEUTRAL_BIAS', '1'))
 print(f"Biased by: like: {like_bias}, dislike: {dislike_bias}, neutral: {neutral_bias}")
@@ -52,9 +52,9 @@ def handler(event, context):
   # Check the lit-feed-dev-article-models bucket for the model
   boto3.setup_default_session()
   s3 = boto3.client('s3')
-  print('Loading pipeline from S3')
   shouldLoadFromScratch = True
   if not is_test_run:
+    print('Loading pipeline')
     try:
       if os.path.exists(pipeline_full_filename):
         if os.path.exists(pipeline_full_filename) and (time.time() - os.path.getmtime(pipeline_full_filename)) < 1800:
