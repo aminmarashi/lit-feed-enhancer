@@ -20,6 +20,7 @@ bucket_name = 'lit-feed-dev-article-training-data'
 pipeline_filename = 'complete_pipeline.joblib'
 lambda_tmp_dir = '/tmp'
 pipeline_full_filename = f'{lambda_tmp_dir}/{pipeline_filename}'
+IS_LOCAL = os.environ.get('IS_LOCAL', 'False') == 'True'
 
 def handler(event, context):
   article = event
@@ -45,31 +46,34 @@ def handler(event, context):
   s3 = boto3.client('s3')
   print('Loading pipeline from S3')
   shouldLoadFromScratch = True
-  try:
-    if os.path.exists(pipeline_full_filename):
-      if os.path.exists(pipeline_full_filename) and (time.time() - os.path.getmtime(pipeline_full_filename)) < 1800:
-        print("Pipeline in /tmp is less than half hour old, skipping training")
-        return {
-          'statusCode': 200,
-          'body': json.dumps('Training is already done less than half hour ago, skipping')
-        }
-      pipeline = joblib.load(pipeline_full_filename)
-      print("Pipeline loaded from /tmp")
-    else:
-      key = f'{userId}/{pipeline_filename}'
-      # If S3 file is created less than half hour ago skip training
-      if (time.time() - s3.head_object(Bucket=bucket_name, Key=key)['LastModified'].timestamp()) < 1800:
-        print("Pipeline in S3 is less than half hour old, skipping training")
-        return {
-          'statusCode': 200,
-          'body': json.dumps('Training is already done less than half hour ago, skipping')
-        }
-      s3.download_file(bucket_name, key, pipeline_full_filename)
-      pipeline = joblib.load(pipeline_full_filename)
-      print("pipeline loaded from s3")
-    shouldLoadFromScratch = False
-  except:
-    print('Pipeline will have to be created from scratch')
+  if not IS_LOCAL:
+    try:
+      if os.path.exists(pipeline_full_filename):
+        if os.path.exists(pipeline_full_filename) and (time.time() - os.path.getmtime(pipeline_full_filename)) < 1800:
+          print("Pipeline in /tmp is less than half hour old, skipping training")
+          return {
+            'statusCode': 200,
+            'body': json.dumps('Training is already done less than half hour ago, skipping')
+          }
+        pipeline = joblib.load(pipeline_full_filename)
+        print("Pipeline loaded from /tmp")
+      else:
+        key = f'{userId}/{pipeline_filename}'
+        # If S3 file is created less than half hour ago skip training
+        if (time.time() - s3.head_object(Bucket=bucket_name, Key=key)['LastModified'].timestamp()) < 1800:
+          print("Pipeline in S3 is less than half hour old, skipping training")
+          return {
+            'statusCode': 200,
+            'body': json.dumps('Training is already done less than half hour ago, skipping')
+          }
+        s3.download_file(bucket_name, key, pipeline_full_filename)
+        pipeline = joblib.load(pipeline_full_filename)
+        print("pipeline loaded from s3")
+      shouldLoadFromScratch = False
+    except:
+      print('Pipeline will have to be created from scratch')
+  else:
+    print('Running locally, training will be done from scratch')
   
   if shouldLoadFromScratch:
     print('Loading training data from Athena')
@@ -109,8 +113,9 @@ def handler(event, context):
       ]
     )
     numpy_classes = np.array(classes)
-    class_weights = compute_class_weight(class_weight='balanced', classes=numpy_classes, y=y) 
+    class_weights = compute_class_weight(class_weight='balanced', classes=numpy_classes, y=y)
     class_weights_dict = dict(zip(numpy_classes, class_weights))
+    print(f"Class weights: {class_weights_dict}")
     sgd_classifier = SGDClassifier(loss='modified_huber', class_weight=class_weights_dict)
     pipeline = Pipeline([
       ('preprocessor', preprocessor),
@@ -136,7 +141,10 @@ def handler(event, context):
   # Save the model and vectorizer back to S3
   print('Saving the data in S3')
   joblib.dump(pipeline, pipeline_full_filename)
-  s3.upload_file(pipeline_full_filename, bucket_name, f'{userId}/{pipeline_filename}')
+  if not IS_LOCAL:
+    s3.upload_file(pipeline_full_filename, bucket_name, f'{userId}/{pipeline_filename}')
+  else:
+    print('Skipping S3 upload')
 
   return {
     'statusCode': 200,

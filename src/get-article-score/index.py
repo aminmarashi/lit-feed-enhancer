@@ -4,6 +4,7 @@ import joblib
 import boto3
 import json
 import os
+import sys
 
 bucket_name = os.environ.get('TRAINING_DATA_BUCKET_NAME')
 pipeline_filename = 'complete_pipeline.joblib'
@@ -85,5 +86,29 @@ def handler(event, context):
   }
 
 if __name__ == '__main__':
-  result = handler({'_id': '669ea2ef2bb30006436b8018', 'feedUrl': 'https://hnrss.org/newest?points=10', 'href': 'https://www.wsj.com/lifestyle/relationships/americans-babies-childless-birthrate-daf438f9', 'userId': '65a90719332e28717a201fef', 'content': '\n<p>Article URL: <a href="https://www.wsj.com/lifestyle/relationships/americans-babies-childless-birthrate-daf438f9">https://www.wsj.com/lifestyle/relationships/americans-babies-childless-birthrate-daf438f9</a></p>\n<p>Comments URL: <a href="https://news.ycombinator.com/item?id=41037116">https://news.ycombinator.com/item?id=41037116</a></p>\n<p>Points: 16</p>\n<p># Comments: 61</p>\n', 'createdAt': '2024-07-22T18:20:30.952Z', 'date': '2024-07-22T17:38:14.000Z', 'isLiked': None, 'isRead': False, 'isSaved': False, 'synchedAt': '2024-07-22T18:20:31.154Z', 'title': "Why Americans Aren't Having Babies", 'updatedAt': '2024-07-22T18:20:30.952Z'}, None)
+  # If anything was piped to the app use that input from the pipe
+  is_input_in_pipe = not os.isatty(0)
+  input_data = """
+  {
+    "_id": "66af3505ea76309af7926b5e",
+    "href": "https://www.abc.net.au/news/2024-08-04/housing-is-a-human-right-says-former-vic-supreme-court-judge/104179612",
+    "feedUrl": "https://hnrss.org/newest?points=20",
+    "userId": "localhostUser",
+    "content": "\\n<p>Article URL: <a href=\\"https://www.abc.net.au/news/2024-08-04/housing-is-a-human-right-says-former-vic-supreme-court-judge/104179612\\">https://www.abc.net.au/news/2024-08-04/housing-is-a-human-right-says-former-vic-supreme-court-judge/104179612</a></p>\\n<p>Comments URL: <a href=\\"https://news.ycombinator.com/item?id=41151147\\">https://news.ycombinator.com/item?id=41151147</a></p>\\n<p>Points: 26</p>\\n<p># Comments: 20</p>\\n",
+    "createdAt": "2024-08-04T08:00:04.933Z",
+    "date": "2024-08-04T04:30:21.000Z",
+    "isLiked": null,
+    "isRead": false,
+    "isSaved": false,
+    "summary": "Former Victorian Supreme Court judge Kevin Bell argues that housing should be treated as a human right in Australia, describing the current housing situation as a socio-economic disaster rather than a crisis. In his book, \\"Housing: The Great Australian Right,\\" Bell critiques the focus on housing as a commodity for private gain, which he sees as a fundamental problem. He recalls a time when government-supported social housing was more prevalent, emphasizing that the current system disproportionately benefits property owners while leaving many without affordable housing. Bell highlights the connections between housing and broader societal issues, including mental health and social justice, and advocates for a national housing strategy that emphasizes human rights and comprehensive legislative support to address these systemic failures.",
+    "synchedAt": "2024-08-04T08:00:11.379Z",
+    "tags": ["rights", "system", "homelessness", "government", "values"],
+    "title": "Australia must treat housing as a human right: Former State Supreme Court judge",
+    "updatedAt": "2024-08-04T08:00:04.933Z"
+  }
+  """
+  if is_input_in_pipe:
+    input_data = sys.stdin.read()
+  input_data = json.loads(input_data)
+  result = handler(input_data, None)
   print(result)
