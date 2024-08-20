@@ -59,7 +59,7 @@ async function requestGPTKeywords(keywords: string[]): Promise<string[]> {
           {
             role: "system",
             content:
-              "Take these items in the keywords:match_score format and turn them into 5 umbrella keywords that are related to the most relevant keywords based on the match_score provided, answer with maximum of 5 comma-separated keywords, each keyword can consist of one or maximum two english words. Do not return any text but those words, no number, extra punctuations or anything else, I want just those comma separated words, nothing else",
+              "Take these items in the keywords:match_score format and turn them into maximum of 10 umbrella keywords that are sorted by the most relevant keywords based on the match_score provided, answer with maximum of 10 comma-separated keywords, each keyword can consist of one or maximum two english words. Do not return any text but those words, no number, extra punctuations or anything else, I want just those comma separated words, nothing else",
           },
           {
             role: "user",

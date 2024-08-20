@@ -1,5 +1,6 @@
 import { ArticleType } from "@/process-article/schemas/articles";
 import { load } from "cheerio";
+import { chatGPTHeaders } from "../utils/http";
 
 export async function fetchArticleContent(fullDocument: ArticleType) {
   const { link: url } = fullDocument;
@@ -10,11 +11,13 @@ export async function fetchArticleContent(fullDocument: ArticleType) {
 
   console.info("Fetched article content", { url });
 
-  const content = removeHtmlTags({
+  const rawContent = removeHtmlTags({
     htmlContent,
   });
 
-  if (!content) {
+  const content = await requestGPTCleanup(rawContent);
+
+  if (!content || content.length < 100) {
     console.warn("No content found", { url });
     return fullDocument;
   }
@@ -71,4 +74,36 @@ function removeHtmlTags({ htmlContent }: { htmlContent: string }) {
     return "";
   }
   return bodyText.replace(/\s+/g, " ");
+}
+
+async function requestGPTCleanup(content: string): Promise<string> {
+  try {
+    const response = await fetch("https://api.openai.com/v1/chat/completions", {
+      method: "POST",
+      body: JSON.stringify({
+        model: "gpt-4o-mini",
+        messages: [
+          {
+            role: "system",
+            content:
+              "Extract the essence of this article, remove any remainder from removing html tags and only keep the relevant content, keep the details as accurately as possible, do not summarize the text, do not add a single word from yourself.",
+          },
+          {
+            role: "user",
+            content: content,
+          },
+        ],
+      }),
+      headers: chatGPTHeaders,
+    });
+    const json = await response.json();
+
+    const data = json.choices[0].message.content.trim();
+    return data;
+  } catch (error) {
+    console.error("Error requesting data from OpenAI:", {
+      error: error as Error,
+    });
+    return "";
+  }
 }

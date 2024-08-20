@@ -5,9 +5,7 @@ import joblib
 import boto3
 import json
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.feature_extraction.text import HashingVectorizer
 from sklearn.linear_model import SGDClassifier
-from sklearn.preprocessing import OneHotEncoder
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
 import awswrangler as wr
@@ -15,14 +13,14 @@ import os
 import numpy as np
 from sklearn.utils.class_weight import compute_class_weight
 from imblearn.over_sampling import RandomOverSampler
+from sklearn.preprocessing import StandardScaler
+from sklearn.base import BaseEstimator, TransformerMixin
 
 ## TODO: Make these env vars
 bucket_name = 'lit-feed-dev-article-training-data'
 pipeline_filename = 'complete_pipeline.joblib'
 athena_cache_filename = 'athena_cache.csv'
 lambda_tmp_dir = '/tmp'
-athena_cache_full_filename = f'{lambda_tmp_dir}/{athena_cache_filename}'
-pipeline_full_filename = f'{lambda_tmp_dir}/{pipeline_filename}'
 is_test_run = os.environ.get('TEST_RUN', 'False') == 'True'
 testing_sample_fraction = float(os.environ.get('TESTING_SAMPLE_FRACTION', '0.2'))
 like_bias = float(os.environ.get('LIKE_BIAS', '300'))
@@ -30,24 +28,62 @@ dislike_bias = float(os.environ.get('DISLIKE_BIAS', '300'))
 neutral_bias = float(os.environ.get('NEUTRAL_BIAS', '1'))
 print(f"Biased by: like: {like_bias}, dislike: {dislike_bias}, neutral: {neutral_bias}")
 
+class OrderedTagVectorizer(BaseEstimator, TransformerMixin):
+  def __init__(self):
+    self.vectorizers = []
+
+  def fit(self, X, y=None):
+    # Ensure X is a list of lists
+    X = [tags if isinstance(tags, (list, np.ndarray)) else [] for tags in X]
+    max_len = max(len(tags) for tags in X)
+    self.vectorizers = [TfidfVectorizer() for _ in range(max_len)]
+    
+    for i in range(max_len):
+      tag_texts = [tags[i] if i < len(tags) and isinstance(tags[i], str) else '' for tags in X]
+      self.vectorizers[i].fit(tag_texts)
+    
+    return self
+
+  def transform(self, X, y=None):
+    # Ensure X is a list of lists
+    X = [tags if isinstance(tags, (list, np.ndarray)) else [] for tags in X]
+    max_len = len(self.vectorizers)
+    transformed = []
+    
+    for tags in X:
+      tag_vectors = []
+      for i in range(max_len):
+        if i < len(tags) and isinstance(tags[i], str):
+          tag_vector = self.vectorizers[i].transform([tags[i]]).toarray()
+        else:
+          tag_vector = np.zeros((1, len(self.vectorizers[i].get_feature_names_out())))
+        tag_vectors.append(tag_vector)
+      
+      # If no valid tags are present, return a zero vector with at least one feature
+      if len(tag_vectors) > 0:
+        transformed.append(np.hstack(tag_vectors))
+      else:
+        # Handle the case where tag_vectors is empty by adding a dummy feature
+        transformed.append(np.zeros((1, max(1, len(self.vectorizers)))))
+    
+    return np.array(transformed).reshape(len(X), -1)
+
+
 def handler(event, context):
+  print(f'Event: {event}')
   article = event
   userId = article['userId']
+  tmp_user_dir = f'{lambda_tmp_dir}/{userId}'
+  if not os.path.exists(tmp_user_dir):
+    os.makedirs(tmp_user_dir)
+  athena_cache_full_filename = f'{tmp_user_dir}/{athena_cache_filename}'
+  pipeline_full_filename = f'{tmp_user_dir}{pipeline_filename}'
   if 'isSaved' in article:
     article['issaved'] = article['isSaved']
     article.pop('isSaved')
   if 'isLiked' in article:
     article['isliked'] = article['isLiked']
     article.pop('isLiked')
-  if 'isRead' in article:
-    article['isread'] = article['isRead']
-    article.pop('isRead')
-  if 'feedUrl' in article:
-    article['feedurl'] = article['feedUrl']
-    article.pop('feedUrl')
-  if 'content' in article:
-    article['textcontent'] = article['content']
-    article.pop('content')
 
   # Check the lit-feed-dev-article-models bucket for the model
   boto3.setup_default_session()
@@ -78,8 +114,8 @@ def handler(event, context):
         pipeline = joblib.load(pipeline_full_filename)
         print("pipeline loaded from s3")
       shouldLoadFromScratch = False
-    except:
-      print('Pipeline will have to be created from scratch')
+    except Exception as e:
+      print('Pipeline will have to be created from scratch' + str(e))
   else:
     print('Running locally, training will be done from scratch')
   
@@ -89,7 +125,7 @@ def handler(event, context):
       print('loaded data from local athena cache')
     else:
       print('Loading training data from Athena')
-      query = f"select distinct b.link, u.title, b.tags, b.textcontent, u.userid, u.issaved, u.isliked, u.isread, b.summary, u.feedurl from default.user_articles u join default.backend_articles b on u.href = b.link where u.userId = '{userId}'"
+      query = f"select distinct u.title, b.tags, u.userid, u.issaved, u.isliked, b.summary from default.user_articles u join default.backend_articles b on u.href = b.link where u.userId = '{userId}'"
       data = wr.athena.read_sql_query(query, database='default')
       data.to_csv(athena_cache_full_filename, index=False)
       print('loaded data from Athena')
@@ -97,8 +133,7 @@ def handler(event, context):
     print('Training data loaded from the event')
     data = pd.DataFrame([article])
 
-  data['textcontent'] = data['textcontent'].fillna('').astype(str)
-  data['tags'] = data['tags'].fillna('').astype(str)
+  data['tags'] = data['tags'].apply(lambda x: x if isinstance(x, (list, np.ndarray)) else [])
   data['summary'] = data['summary'].fillna('').astype(str)
 
   if is_test_run:
@@ -109,6 +144,12 @@ def handler(event, context):
   y = data['isliked'].apply(lambda x: 0 if pd.isna(x) or x == None else 1 if x else -1)
   # If issaved is True, set y to 1
   y = y.where(data['issaved'] == False, 1) # change to 1 if saved is true
+
+  # Delete all columns from data except for title, summary and tags
+  all_data_columns = data.columns
+  for column in all_data_columns:
+    if column not in ['title', 'summary', 'tags']:
+      data = data.drop(column, axis=1)
 
   print('Starting the training with the following outputs')
   y_equal_1 = y[y == 1]
@@ -122,12 +163,9 @@ def handler(event, context):
   if shouldLoadFromScratch:
     preprocessor = ColumnTransformer(
       transformers=[
-        ('txt', TfidfVectorizer(), 'textcontent'),
-        ('saved', OneHotEncoder(), ['issaved']),
         ('title', TfidfVectorizer(), 'title'),
         ('summary', TfidfVectorizer(), 'summary'), 
-        ('tags', TfidfVectorizer(), 'tags'),
-        ('url', HashingVectorizer(), 'feedurl')
+        ('tags', OrderedTagVectorizer(), 'tags'),
       ]
     )
     numpy_classes = np.array(classes)
@@ -140,6 +178,7 @@ def handler(event, context):
     sgd_classifier = SGDClassifier(loss='modified_huber', class_weight=class_weights_dict)
     pipeline = Pipeline([
       ('preprocessor', preprocessor),
+      ('scaler', StandardScaler(with_mean=False)),
       ('classifier', sgd_classifier)
     ])
     print('pipeline created from scratch')
@@ -150,6 +189,10 @@ def handler(event, context):
     data_resampled, y_resampled = ros.fit_resample(data, y)
 
     pipeline.fit(data_resampled, y_resampled)
+
+    print("Shape of data_resampled:", data_resampled.shape)
+    print("Shape of y_resampled:", y_resampled.shape)
+
   else:
     preprocessor = pipeline.named_steps['preprocessor']
     classifier = pipeline.named_steps['classifier']
@@ -219,7 +262,7 @@ if __name__ == '__main__':
     'feedName': 'hn 100',
     'synchedAt': '2024-03-05t08:53:34.086z',
     'isLiked': None,
-    'userId': '65a90719332e28717a201fef',
+    'userId': 'localhostUser',
     'tags': None,
     'openDuration': 8578928
   }, None)

@@ -48,8 +48,7 @@ async function requestGPTSummary({
         messages: [
           {
             role: "system",
-            content:
-              "The following is an article title followed by an article content, return a summary of the article and nothing else. Do not say anything else except for the summarized text of the article. If the summary does not match the article content, reply with a single whitespace.",
+            content: `The following is an article title followed by an article content, return an extensive summary of the article that keeps the essence of the article while remaining as short as possible. Do not add a single word from yourself. If the summary is not related to the article title: ${title}, reply with 'Done'`,
           },
           {
             role: "user",

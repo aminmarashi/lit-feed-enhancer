@@ -5,6 +5,48 @@ import boto3
 import json
 import os
 import sys
+import numpy as np
+from sklearn.base import BaseEstimator, TransformerMixin
+
+class OrderedTagVectorizer(BaseEstimator, TransformerMixin):
+  def __init__(self):
+    self.vectorizers = []
+
+  def fit(self, X, y=None):
+    # Ensure X is a list of lists
+    X = [tags if isinstance(tags, (list, np.ndarray)) else [] for tags in X]
+    max_len = max(len(tags) for tags in X)
+    self.vectorizers = [TfidfVectorizer() for _ in range(max_len)]
+    
+    for i in range(max_len):
+      tag_texts = [tags[i] if i < len(tags) and isinstance(tags[i], str) else '' for tags in X]
+      self.vectorizers[i].fit(tag_texts)
+    
+    return self
+
+  def transform(self, X, y=None):
+    # Ensure X is a list of lists
+    X = [tags if isinstance(tags, (list, np.ndarray)) else [] for tags in X]
+    max_len = len(self.vectorizers)
+    transformed = []
+    
+    for tags in X:
+      tag_vectors = []
+      for i in range(max_len):
+        if i < len(tags) and isinstance(tags[i], str):
+          tag_vector = self.vectorizers[i].transform([tags[i]]).toarray()
+        else:
+          tag_vector = np.zeros((1, len(self.vectorizers[i].get_feature_names_out())))
+        tag_vectors.append(tag_vector)
+      
+      # If no valid tags are present, return a zero vector with at least one feature
+      if len(tag_vectors) > 0:
+        transformed.append(np.hstack(tag_vectors))
+      else:
+        # Handle the case where tag_vectors is empty by adding a dummy feature
+        transformed.append(np.zeros((1, max(1, len(self.vectorizers)))))
+    
+    return np.array(transformed).reshape(len(X), -1)
 
 bucket_name = os.environ.get('TRAINING_DATA_BUCKET_NAME')
 pipeline_filename = 'complete_pipeline.joblib'
@@ -35,18 +77,8 @@ def handler(event, context):
       }
   pipeline = joblib.load(pipeline_full_filename)
   ## Todo handle when there is no pipeline in s3
-  expected_keys =['link', 'title', 'tags', 'textcontent', 'userid', 'issaved', 'isliked', 'isread', 'summary', 'feedurl'] 
+  expected_keys =['title', 'tags', 'summary'] 
 
-  articles['link'] = articles['href'].fillna('').astype(str)
-  articles['feedurl'] = articles['feedUrl'].fillna('').astype(str)
-  articles['isread'] = articles['isRead'].astype(bool)
-  articles['issaved'] = articles['isSaved'].astype(bool)
-  articles['userid'] = articles['userId'].fillna('').astype(str)
-  articles['isliked'] = articles['isLiked']
-  if 'content' in articles.columns:
-    articles['textcontent'] = articles['content'].fillna('').astype(str)
-  else:
-    articles['textcontent'] = ''
   if 'summary' in articles.columns:
     articles['summary'] = articles['summary'].fillna('').astype(str)
   else:
