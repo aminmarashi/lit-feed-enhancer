@@ -55,24 +55,14 @@ def handler(event, context):
   if not is_test_run:
     print('Loading pipeline')
     try:
+      # TODO: Move the function call to SQS queue so that we don't lose articles due to race conditions
+      # It takes each lambda 7 seconds to finish, and if another training is done during that time one
+      # it will override the result
       if os.path.exists(pipeline_full_filename):
-        if os.path.exists(pipeline_full_filename) and (time.time() - os.path.getmtime(pipeline_full_filename)) < 1800:
-          print("Pipeline in /tmp is less than half hour old, skipping training")
-          return {
-            'statusCode': 200,
-            'body': json.dumps('Training is already done less than half hour ago, skipping')
-          }
         pipeline = joblib.load(pipeline_full_filename)
         print("Pipeline loaded from /tmp")
       else:
         key = f'{userId}/{pipeline_filename}'
-        # If S3 file is created less than half hour ago skip training
-        if (time.time() - s3.head_object(Bucket=bucket_name, Key=key)['LastModified'].timestamp()) < 1800:
-          print("Pipeline in S3 is less than half hour old, skipping training")
-          return {
-            'statusCode': 200,
-            'body': json.dumps('Training is already done less than half hour ago, skipping')
-          }
         s3.download_file(bucket_name, key, pipeline_full_filename)
         pipeline = joblib.load(pipeline_full_filename)
         print("pipeline loaded from s3")
