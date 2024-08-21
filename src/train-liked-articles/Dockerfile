@@ -10,6 +10,7 @@ WORKDIR ${LAMBDA_TASK_ROOT}
 
 RUN pip install -r requirements.txt
 
+COPY custom_transformers.py ${LAMBDA_TASK_ROOT}
 COPY index.py ${LAMBDA_TASK_ROOT}
 
 CMD ["index.handler"]
