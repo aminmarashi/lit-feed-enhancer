@@ -38,14 +38,10 @@ def handler(event, context):
   ## Todo handle when there is no pipeline in s3
   expected_keys =['title', 'tags', 'summary'] 
 
-  if 'summary' in articles.columns:
-    articles['summary'] = articles['summary'].fillna('').astype(str)
-  else:
+  if not 'summary' in articles.columns:
     articles['summary'] = ''
-  if 'tags' in articles.columns:
-    articles['tags'] = articles['tags'].fillna('[]').astype(str)
-  else:
-    articles['tags'] = '[]'
+  if not 'tags' in articles.columns:
+    articles['tags'] = []
 
   for column in articles.columns:
     if column not in expected_keys:

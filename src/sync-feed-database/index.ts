@@ -5,7 +5,7 @@ const s3 = new S3Client();
 const lambda = new LambdaClient();
 const trainLikedArticlesLambdaArn = process.env.TRAIN_LIKED_ARTICLES_LAMBDA;
 
-export async function handler(request: never) {
+export async function handler(request: any) {
   const year = new Date().getFullYear();
   const zeroPaddedMonth = (new Date().getMonth() + 1)
     .toString()
@@ -21,7 +21,7 @@ export async function handler(request: never) {
 
   const s3Key = `${collectionName}/${
     // eslint-disable-next-line @typescript-eslint/no-explicit-any
-    (fullDocument as any).userId
+    fullDocument.userId
   }/${operationType}/${year}/${zeroPaddedMonth}/${zeroPaddedDay}/${timestamp}-${eventId}.json`;
   const s3Params = {
     Bucket: "lit-feed-dev-feed-events-bucket",
@@ -32,7 +32,13 @@ export async function handler(request: never) {
   await s3.send(new PutObjectCommand(s3Params));
   console.log("saved event to S3", { s3Key, fullDocument, operationType });
 
-  if (collectionName === "articles" && operationType === "update") {
+  if (
+    collectionName === "articles" &&
+    operationType === "update" &&
+    (fullDocument.isSaved ||
+      fullDocument.isLiked === true ||
+      fullDocument.isLiked === false)
+  ) {
     if (trainLikedArticlesLambdaArn) {
       // invoke lambda asynchronously
       console.log(

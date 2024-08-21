@@ -43,6 +43,10 @@ def handler(event, context):
   if 'isLiked' in article:
     article['isliked'] = article['isLiked']
     article.pop('isLiked')
+  if not 'summary' in article:
+    article['summary'] = ''
+  if not 'tags' in article:
+    article['tags'] = []
 
   # Check the lit-feed-dev-article-models bucket for the model
   boto3.setup_default_session()
@@ -221,7 +225,7 @@ if __name__ == '__main__':
     'feedName': 'hn 100',
     'synchedAt': '2024-03-05t08:53:34.086z',
     'isLiked': None,
-    'userId': '65a90719332e28717a201fef',
+    'userId': 'localhostUser',
     'tags': None,
     'openDuration': 8578928
   }, None)
