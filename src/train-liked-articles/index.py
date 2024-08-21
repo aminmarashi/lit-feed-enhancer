@@ -5,7 +5,7 @@ import joblib
 import boto3
 import json
 from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.linear_model import SGDClassifier
+from sklearn.ensemble import RandomForestClassifier
 from sklearn.compose import ColumnTransformer
 from sklearn.pipeline import Pipeline
 import awswrangler as wr
@@ -23,8 +23,8 @@ athena_cache_filename = 'athena_cache.csv'
 lambda_tmp_dir = '/tmp'
 is_test_run = os.environ.get('TEST_RUN', 'False') == 'True'
 testing_sample_fraction = float(os.environ.get('TESTING_SAMPLE_FRACTION', '0.2'))
-like_bias = float(os.environ.get('LIKE_BIAS', '300'))
-dislike_bias = float(os.environ.get('DISLIKE_BIAS', '300'))
+like_bias = float(os.environ.get('LIKE_BIAS', '1'))
+dislike_bias = float(os.environ.get('DISLIKE_BIAS', '1'))
 neutral_bias = float(os.environ.get('NEUTRAL_BIAS', '1'))
 print(f"Biased by: like: {like_bias}, dislike: {dislike_bias}, neutral: {neutral_bias}")
 
@@ -123,8 +123,8 @@ def handler(event, context):
   if shouldLoadFromScratch:
     preprocessor = ColumnTransformer(
       transformers=[
-        ('title', TfidfVectorizer(), 'title'),
-        ('summary', TfidfVectorizer(), 'summary'), 
+        ('title', TfidfVectorizer(max_features=10000, ngram_range=(1, 3)), 'title'),
+        ('summary', TfidfVectorizer(max_features=10000, ngram_range=(1, 3)), 'summary'), 
         ('tags', OrderedTagVectorizer(), 'tags'),
       ]
     )
@@ -135,11 +135,15 @@ def handler(event, context):
     class_weights_dict[1] *= like_bias
     class_weights_dict[0] *= neutral_bias
     print(f"Class weights: {class_weights_dict}")
-    sgd_classifier = SGDClassifier(loss='modified_huber', class_weight=class_weights_dict)
+    classifier = RandomForestClassifier(
+      n_estimators=1000,   # fewer trees
+      max_depth=30,      # shallower trees
+      n_jobs=-1,          # parallel processing
+      random_state=42     # for reproducibility
+    )
     pipeline = Pipeline([
       ('preprocessor', preprocessor),
-      # ('scaler', StandardScaler(with_mean=False)),
-      ('classifier', sgd_classifier)
+      ('classifier', classifier)
     ])
     print('pipeline created from scratch')
 

@@ -11,7 +11,7 @@ class OrderedTagVectorizer(BaseEstimator, TransformerMixin):
     # Ensure X is a list of lists
     X = [tags if isinstance(tags, (list, np.ndarray)) else [] for tags in X]
     max_len = max(len(tags) for tags in X)
-    self.vectorizers = [TfidfVectorizer() for _ in range(max_len)]
+    self.vectorizers = [TfidfVectorizer(max_features=5000, ngram_range=(1, 3), sublinear_tf=True) for _ in range(max_len)]
     
     for i in range(max_len):
       tag_texts = [tags[i] if i < len(tags) and isinstance(tags[i], str) else '' for tags in X]
