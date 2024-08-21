@@ -28,6 +28,13 @@ dislike_bias = float(os.environ.get('DISLIKE_BIAS', '300'))
 neutral_bias = float(os.environ.get('NEUTRAL_BIAS', '1'))
 print(f"Biased by: like: {like_bias}, dislike: {dislike_bias}, neutral: {neutral_bias}")
 
+def count_disliked_articles(articles, article_probabilities):
+  disliked_articles = 0
+  # Iterate over all articles and find the articles for which corresponding article_probabilities[0] > 0.33
+  for i in range(len(articles)):
+    if article_probabilities[i][0] > 0.33:
+      disliked_articles += 1
+  return disliked_articles
 def handler(event, context):
   print(f'Event: {event}')
   article = event
@@ -131,7 +138,7 @@ def handler(event, context):
     sgd_classifier = SGDClassifier(loss='modified_huber', class_weight=class_weights_dict)
     pipeline = Pipeline([
       ('preprocessor', preprocessor),
-      ('scaler', StandardScaler(with_mean=False)),
+      # ('scaler', StandardScaler(with_mean=False)),
       ('classifier', sgd_classifier)
     ])
     print('pipeline created from scratch')
@@ -155,21 +162,21 @@ def handler(event, context):
     classifier.partial_fit(X_transformed, y, classes=classes)
 
   if is_test_run:
-    liked_articles = data_for_testing[data_for_testing['isliked'] == True]
-    liked_articles_predictions = pipeline.predict(liked_articles)
-    wrong_liked_articles_predictions = (liked_articles_predictions != 1).sum()
-    num_of_liked_articles = len(liked_articles)
-    print(f"Number of wrong predictions for liked articles: {wrong_liked_articles_predictions/num_of_liked_articles} {wrong_liked_articles_predictions}/{num_of_liked_articles}")
-    disliked_articles = data_for_testing[data_for_testing['isliked'] == False]
-    disliked_articles_predictions = pipeline.predict(disliked_articles)
-    wrong_disliked_articles_predictions = (disliked_articles_predictions != -1).sum()
-    num_of_disliked_articles = len(disliked_articles)
-    print(f"Number of wrong predictions for disliked articles: {wrong_disliked_articles_predictions/num_of_disliked_articles} {wrong_disliked_articles_predictions}/{num_of_disliked_articles}")
+    articles_is_liked = data_for_testing[data_for_testing['isliked'] == True]
+    articles_is_saved = data_for_testing[data_for_testing['issaved'] == True]
+    # liked_articles is appended of articles_is_liked and articles_is_saved
+    liked_articles = pd.concat([articles_is_liked, articles_is_saved])
+    liked_articles_probabilities = pipeline.predict_proba(liked_articles)
+    predicted_disliked_articles = count_disliked_articles(liked_articles, liked_articles_probabilities)
+    print(f'Wrongly identified liked articles: {predicted_disliked_articles} from {len(liked_articles)}')
+    article_is_disliked = data_for_testing[data_for_testing['isliked'] == False]
+    article_is_disliked_probabilities = pipeline.predict_proba(article_is_disliked)
+    predicted_disliked_articles = count_disliked_articles(article_is_disliked, article_is_disliked_probabilities)
+    print(f'Wrongly identified disliked articles: {len(article_is_disliked) - predicted_disliked_articles} from {len(article_is_disliked)}')
     neutral_articles = data_for_testing[data_for_testing['isliked'].isna()]
-    neutral_articles_predictions = pipeline.predict(neutral_articles)
-    wrong_neutral_articles_predictions = (neutral_articles_predictions != 0).sum()
-    num_of_neutral_articles = len(neutral_articles)
-    print(f"Number of wrong predictions for neutral articles: {wrong_neutral_articles_predictions/num_of_neutral_articles} {wrong_neutral_articles_predictions}/{num_of_neutral_articles}")
+    neutral_articles_probabilities = pipeline.predict_proba(neutral_articles)
+    predicted_disliked_articles = count_disliked_articles(neutral_articles, neutral_articles_probabilities)
+    print(f'Wrongly identified neutral articles: {predicted_disliked_articles} from {len(neutral_articles)}')
 
   # Save the model and vectorizer back to S3
   print('Saving the data in S3')
@@ -215,7 +222,7 @@ if __name__ == '__main__':
     'feedName': 'hn 100',
     'synchedAt': '2024-03-05t08:53:34.086z',
     'isLiked': None,
-    'userId': 'localhostUser',
+    'userId': '65a90719332e28717a201fef',
     'tags': None,
     'openDuration': 8578928
   }, None)
