@@ -13,8 +13,8 @@ import os
 import numpy as np
 from sklearn.utils.class_weight import compute_class_weight
 from imblearn.over_sampling import RandomOverSampler
-from sklearn.preprocessing import StandardScaler
 from custom_transformers import OrderedTagVectorizer
+from sklearn.linear_model import SGDClassifier
 
 ## TODO: Make these env vars
 bucket_name = 'lit-feed-dev-article-training-data'
@@ -123,8 +123,8 @@ def handler(event, context):
   if shouldLoadFromScratch:
     preprocessor = ColumnTransformer(
       transformers=[
-        ('title', TfidfVectorizer(max_features=10000, ngram_range=(1, 3)), 'title'),
-        ('summary', TfidfVectorizer(max_features=10000, ngram_range=(1, 3)), 'summary'), 
+        ('title', TfidfVectorizer(max_features=10000, max_df=0.7, ngram_range=(1, 5)), 'title'),
+        ('summary', TfidfVectorizer(max_features=1000000, max_df=0.7, ngram_range=(1, 5)), 'summary'), 
         ('tags', OrderedTagVectorizer(), 'tags'),
       ]
     )
@@ -135,12 +135,10 @@ def handler(event, context):
     class_weights_dict[1] *= like_bias
     class_weights_dict[0] *= neutral_bias
     print(f"Class weights: {class_weights_dict}")
-    classifier = RandomForestClassifier(
-      n_estimators=1000,   # fewer trees
-      max_depth=30,      # shallower trees
-      n_jobs=-1,          # parallel processing
-      random_state=42     # for reproducibility
-    )
+    classifier = SGDClassifier(loss='log_loss', penalty='elasticnet', alpha=0.0001, l1_ratio=0.15,
+                        learning_rate='adaptive', eta0=0.01,
+                        validation_fraction=0.1, n_iter_no_change=5, random_state=42)
+
     pipeline = Pipeline([
       ('preprocessor', preprocessor),
       ('classifier', classifier)
@@ -226,7 +224,7 @@ if __name__ == '__main__':
     'feedName': 'hn 100',
     'synchedAt': '2024-03-05t08:53:34.086z',
     'isLiked': None,
-    'userId': '65a90719332e28717a201fef',
+    'userId': 'localhostUser',
     'tags': None,
     'openDuration': 8578928
   }, None)
