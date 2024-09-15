@@ -7,6 +7,8 @@ import * as pulumi from "@pulumi/pulumi";
 import * as aws from "@pulumi/aws";
 import * as awsx from "@pulumi/awsx";
 
+const config = new pulumi.Config();
+
 const lambdaRunUser = new aws.iam.User(
   "lambda_run_user",
   { name: "lambda-run-user" },
@@ -483,4 +485,106 @@ const getArticleScore = new aws.lambda.Function("get_article_score", {
     mode: "PassThrough",
   },
   imageUri: getArticleScoreImage.imageUri,
+});
+
+const mongoDumpBucket = new aws.s3.BucketV2(
+  "mongo_dump_bucket",
+  {
+    bucket: "lit-feed-dev-mongo-dump-bucket",
+    lifecycleRules: [
+      {
+        abortIncompleteMultipartUploadDays: 0,
+        enabled: true,
+        expirations: [],
+        id: "manage-storage-lifecycle",
+        noncurrentVersionExpirations: [],
+        noncurrentVersionTransitions: [],
+        prefix: "",
+        tags: {},
+        transitions: [
+          {
+            days: 30,
+            storageClass: "GLACIER",
+          },
+        ],
+      },
+    ],
+    requestPayer: "BucketOwner",
+    serverSideEncryptionConfigurations: [
+      {
+        rules: [
+          {
+            applyServerSideEncryptionByDefaults: [
+              {
+                kmsMasterKeyId: "",
+                sseAlgorithm: "AES256",
+              },
+            ],
+            bucketKeyEnabled: false,
+          },
+        ],
+      },
+    ],
+    versionings: [
+      {
+        enabled: false,
+        mfaDelete: false,
+      },
+    ],
+  },
+  {
+    protect: true,
+  }
+);
+
+const mongoDumpImage = new awsx.ecr.Image("mongo_dump_ecr_image", {
+  repositoryUrl: lambdaImagesEcrRepository.repositoryUrl,
+  context: "./src/mongo-dump",
+  platform: "linux/amd64",
+});
+
+const mongoDumpLambda = new aws.lambda.Function("mongo_dump_lambda", {
+  environment: {
+    variables: {
+      MONGO_DUMP_BUCKET_NAME: mongoDumpBucket.bucket,
+      MONGO_URL: config.requireSecret("mongoUrl"),
+    },
+  },
+  architectures: ["x86_64"],
+  ephemeralStorage: {
+    size: 512,
+  },
+  loggingConfig: {
+    logFormat: "Text",
+    logGroup: "mongodump-lambda-log-group",
+  },
+  timeout: 60 * 15,
+  memorySize: 512,
+  name: "mongodump-lambda",
+  packageType: "Image",
+  role: lambdaExectutionRole.arn,
+  tracingConfig: {
+    mode: "PassThrough",
+  },
+  imageUri: mongoDumpImage.imageUri,
+});
+
+// Run mongodump lambda every night at 12 oclock
+const eventRule = new aws.cloudwatch.EventRule("mongo_dump_event_rule", {
+  scheduleExpression: "cron(0 12 * * ? *)",
+  description: "Fires every night at 12 oclock to dump the mongo database",
+  isEnabled: true,
+  name: "mongo-dump-event-rule",
+});
+
+const eventTarget = new aws.cloudwatch.EventTarget("mongo_dump_event_target", {
+  arn: mongoDumpLambda.arn,
+  rule: eventRule.name,
+});
+
+const lambdaPermission = new aws.lambda.Permission("lambdaPermissionForEvent", {
+  action: "lambda:InvokeFunction",
+  function: mongoDumpLambda.arn,
+  principal: "events.amazonaws.com",
+  sourceArn: eventRule.arn,
 });
