@@ -44,6 +44,7 @@ def handler(event, context):
     os.makedirs(tmp_user_dir)
   athena_cache_full_filename = f'{tmp_user_dir}/{athena_cache_filename}'
   pipeline_full_filename = f'{tmp_user_dir}{pipeline_filename}'
+  athena_cache_in_s3 = f'{userId}/{athena_cache_filename}'
   if 'isSaved' in article:
     article['issaved'] = article['isSaved']
     article.pop('isSaved')
@@ -83,11 +84,18 @@ def handler(event, context):
     if os.path.exists(athena_cache_full_filename):
       data = pd.read_csv(athena_cache_full_filename)
       print('loaded data from local athena cache')
+    elif check_file_exists_in_s3(s3, Bucket=bucket_name, Key=athena_cache_in_s3):
+      print('Loading training data from S3')
+      s3.download_file(bucket_name, athena_cache_in_s3, athena_cache_full_filename)
+      data = pd.read_csv(athena_cache_full_filename)
+      print('loaded data from S3 athena cache')
     else:
       print('Loading training data from Athena')
       query = f"select distinct u.title, b.tags, u.userid, u.issaved, u.isliked, b.summary from default.user_articles u join default.backend_articles b on u.href = b.link where u.userId = '{userId}'"
       data = wr.athena.read_sql_query(query, database='default')
       data.to_csv(athena_cache_full_filename, index=False)
+      print('Storing Athena results in S3')
+      s3.upload_file(athena_cache_full_filename, bucket_name, athena_cache_in_s3)
       print('loaded data from Athena')
   else:
     print('Training data loaded from the event')
@@ -237,3 +245,10 @@ if __name__ == '__main__':
     'openDuration': 8578928
   }, None)
   print(result)
+
+def check_file_exists_in_s3(s3, Bucket, Key):
+  try:
+    s3.head_object(Bucket=Bucket, Key=Key)
+    return True
+  except:
+    return False
