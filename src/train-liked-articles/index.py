@@ -111,6 +111,15 @@ def handler(event, context):
     if column not in ['title', 'summary', 'tags']:
       data = data.drop(column, axis=1)
 
+  classes = [-1, 0, 1]  # Ensure all classes are represented in the partial_fit call
+
+  if len(y[y == -1]) == 0:
+    print("No disliked articles, moving one from neutral to disliked")
+    y.iloc[0] = -1
+  if len(y[y == 1]) == 0:
+    print("No liked articles, moving one from neutral to liked")
+    y.iloc[0] = 1
+
   print('Starting the training with the following outputs')
   y_equal_1 = y[y == 1]
   y_equal_0 = y[y == 0]
@@ -119,7 +128,6 @@ def handler(event, context):
   print(f"y = 0: {len(y_equal_0)}")
   print(f"y = -1: {len(y_equal_m1)}")
 
-  classes = [-1, 0, 1]  # Ensure all classes are represented in the partial_fit call
   if shouldLoadFromScratch:
     preprocessor = ColumnTransformer(
       transformers=[
