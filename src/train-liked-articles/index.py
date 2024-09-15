@@ -17,10 +17,10 @@ from custom_transformers import OrderedTagVectorizer
 from sklearn.linear_model import SGDClassifier
 
 ## TODO: Make these env vars
-bucket_name = 'lit-feed-dev-article-training-data'
 pipeline_filename = 'complete_pipeline.joblib'
 athena_cache_filename = 'athena_cache.csv'
 lambda_tmp_dir = '/tmp'
+bucket_name = os.environ.get('TRAINING_DATA_BUCKET_NAME', 'lit-feed-dev-article-training-data')
 is_test_run = os.environ.get('TEST_RUN', 'False') == 'True'
 testing_sample_fraction = float(os.environ.get('TESTING_SAMPLE_FRACTION', '0.2'))
 like_bias = float(os.environ.get('LIKE_BIAS', '1'))

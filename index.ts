@@ -276,7 +276,75 @@ const trainLikedArticlesEcrImage = new awsx.ecr.Image(
   }
 );
 
+// add a s3 bucket to store the training data pipeline file per user with versions enable and a lifecycle that moves versions older than 3 months to glacier
+const articleTrainingDataBucket = new aws.s3.BucketV2(
+  "article_training_data_bucket",
+  {
+    bucket: "lit-feed-dev-article-training-data",
+    grants: [
+      {
+        id: "af84821e7f22b2a9f90d6ec79dfe537c05e56f02d08875ada641428ededabfc4",
+        permissions: ["FULL_CONTROL"],
+        type: "CanonicalUser",
+        uri: "",
+      },
+    ],
+    lifecycleRules: [
+      {
+        abortIncompleteMultipartUploadDays: 0,
+        enabled: true,
+        expirations: [],
+        id: "manage-storage-lifecycle",
+        noncurrentVersionExpirations: [],
+        noncurrentVersionTransitions: [],
+        prefix: "",
+        tags: {},
+        transitions: [
+          {
+            days: 90,
+            storageClass: "GLACIER",
+          },
+          {
+            days: 30,
+            storageClass: "ONEZONE_IA",
+          },
+        ],
+      },
+    ],
+    requestPayer: "BucketOwner",
+    serverSideEncryptionConfigurations: [
+      {
+        rules: [
+          {
+            applyServerSideEncryptionByDefaults: [
+              {
+                kmsMasterKeyId: "",
+                sseAlgorithm: "AES256",
+              },
+            ],
+            bucketKeyEnabled: false,
+          },
+        ],
+      },
+    ],
+    versionings: [
+      {
+        enabled: true,
+        mfaDelete: false,
+      },
+    ],
+  },
+  {
+    protect: true,
+  }
+);
+
 const trainLikedArticles = new aws.lambda.Function("train_liked_articles", {
+  environment: {
+    variables: {
+      TRAINING_DATA_BUCKET_NAME: articleTrainingDataBucket.bucket,
+    },
+  },
   ephemeralStorage: {
     size: 512,
   },
@@ -373,69 +441,6 @@ const articleBucket = new aws.s3.BucketV2(
     versionings: [
       {
         enabled: false,
-        mfaDelete: false,
-      },
-    ],
-  },
-  {
-    protect: true,
-  }
-);
-
-// add a s3 bucket to store the training data pipeline file per user with versions enable and a lifecycle that moves versions older than 3 months to glacier
-const articleTrainingDataBucket = new aws.s3.BucketV2(
-  "article_training_data_bucket",
-  {
-    bucket: "lit-feed-dev-article-training-data",
-    grants: [
-      {
-        id: "af84821e7f22b2a9f90d6ec79dfe537c05e56f02d08875ada641428ededabfc4",
-        permissions: ["FULL_CONTROL"],
-        type: "CanonicalUser",
-        uri: "",
-      },
-    ],
-    lifecycleRules: [
-      {
-        abortIncompleteMultipartUploadDays: 0,
-        enabled: true,
-        expirations: [],
-        id: "manage-storage-lifecycle",
-        noncurrentVersionExpirations: [],
-        noncurrentVersionTransitions: [],
-        prefix: "",
-        tags: {},
-        transitions: [
-          {
-            days: 90,
-            storageClass: "GLACIER",
-          },
-          {
-            days: 30,
-            storageClass: "ONEZONE_IA",
-          },
-        ],
-      },
-    ],
-    requestPayer: "BucketOwner",
-    serverSideEncryptionConfigurations: [
-      {
-        rules: [
-          {
-            applyServerSideEncryptionByDefaults: [
-              {
-                kmsMasterKeyId: "",
-                sseAlgorithm: "AES256",
-              },
-            ],
-            bucketKeyEnabled: false,
-          },
-        ],
-      },
-    ],
-    versionings: [
-      {
-        enabled: true,
         mfaDelete: false,
       },
     ],
