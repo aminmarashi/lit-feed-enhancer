@@ -80,7 +80,7 @@ def handler(event, context):
     print('Running locally, training will be done from scratch')
   
   if shouldLoadFromScratch:
-    if is_test_run and os.path.exists(athena_cache_full_filename):
+    if os.path.exists(athena_cache_full_filename):
       data = pd.read_csv(athena_cache_full_filename)
       print('loaded data from local athena cache')
     else:
