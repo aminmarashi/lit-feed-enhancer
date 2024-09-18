@@ -64,12 +64,8 @@ const feedEventsBucket = new aws.s3.BucketV2(
         tags: {},
         transitions: [
           {
-            days: 365,
-            storageClass: "GLACIER",
-          },
-          {
             days: 30,
-            storageClass: "ONEZONE_IA",
+            storageClass: "GLACIER",
           },
         ],
       },
@@ -301,12 +297,8 @@ const articleTrainingDataBucket = new aws.s3.BucketV2(
         tags: {},
         transitions: [
           {
-            days: 90,
-            storageClass: "GLACIER",
-          },
-          {
             days: 30,
-            storageClass: "ONEZONE_IA",
+            storageClass: "GLACIER",
           },
         ],
       },
@@ -412,12 +404,8 @@ const articleBucket = new aws.s3.BucketV2(
         tags: {},
         transitions: [
           {
-            days: 365,
-            storageClass: "GLACIER",
-          },
-          {
             days: 30,
-            storageClass: "ONEZONE_IA",
+            storageClass: "GLACIER",
           },
         ],
       },
