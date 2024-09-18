@@ -121,12 +121,13 @@ def handler(event, context):
 
   classes = [-1, 0, 1]  # Ensure all classes are represented in the partial_fit call
 
-  if len(y[y == -1]) == 0:
-    print("No disliked articles, moving one from neutral to disliked")
-    y.iloc[0] = -1
-  if len(y[y == 1]) == 0:
-    print("No liked articles, moving one from neutral to liked")
-    y.iloc[0] = 1
+  if shouldLoadFromScratch:
+    if len(y[y == -1]) == 0:
+      print("No disliked articles, moving one from neutral to disliked")
+      y.iloc[0] = -1
+    if len(y[y == 1]) == 0:
+      print("No liked articles, moving one from neutral to liked")
+      y.iloc[0] = 1
 
   print('Starting the training with the following outputs')
   y_equal_1 = y[y == 1]
