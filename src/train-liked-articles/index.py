@@ -90,8 +90,8 @@ def handler(event, context):
       print('loaded data from S3 athena cache')
     else:
       print('Loading training data from Athena')
-      query = f"select distinct u.title, b.tags, u.userid, u.issaved, u.isliked, b.summary from default.user_articles u join default.backend_articles b on u.href = b.link where u.userId = '{userId}'"
-      data = wr.athena.read_sql_query(query, database='default')
+      query = f"select distinct u.title, b.tags, u.userid, u.issaved, u.isliked, b.summary from feed.user_articles u join feed.backend_articles b on u.href = b.link where u.userId = '{userId}'"
+      data = wr.athena.read_sql_query(query, database='feed')
       data.to_csv(athena_cache_full_filename, index=False)
       print('Storing Athena results in S3')
       s3.upload_file(athena_cache_full_filename, bucket_name, athena_cache_in_s3)

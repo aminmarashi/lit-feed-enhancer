@@ -574,3 +574,111 @@ const lambdaPermission = new aws.lambda.Permission(
   },
   { dependsOn: [eventRule] }
 );
+
+const athenaResultsBucket = new aws.s3.Bucket("athena-results-bucket", {
+  acl: "private", // Keep the bucket private as it contains query results
+  lifecycleRules: [
+    {
+      enabled: true,
+      expiration: {
+        days: 90,
+      },
+    },
+  ],
+});
+
+const primaryWorkgroup = new aws.athena.Workgroup(
+  "primary",
+  {
+    name: "primary",
+    state: "ENABLED",
+    configuration: {
+      enforceWorkgroupConfiguration: false,
+      publishCloudwatchMetricsEnabled: false,
+      requesterPaysEnabled: false,
+      resultConfiguration: {
+        outputLocation: pulumi.interpolate`s3://${athenaResultsBucket.bucket}/query-results/`,
+      },
+      engineVersion: {
+        selectedEngineVersion: "AUTO",
+      },
+    },
+  },
+  {
+    import: "primary", // Import the existing "primary" workgroup
+  }
+);
+
+const athenaFeedDatabase = new aws.athena.Database("feed", {
+  name: "feed",
+  bucket: athenaResultsBucket.bucket,
+});
+
+// Define the `backend_articles` table
+const backendArticlesTable = new aws.glue.CatalogTable("backend_articles", {
+  name: "backend_articles",
+  databaseName: athenaFeedDatabase.name,
+  tableType: "EXTERNAL_TABLE",
+  storageDescriptor: {
+    columns: [
+      { name: "link", type: "string", comment: "from deserializer" },
+      { name: "content", type: "string", comment: "from deserializer" },
+      { name: "textcontent", type: "string", comment: "from deserializer" },
+      { name: "createdat", type: "date", comment: "from deserializer" },
+      { name: "updatedat", type: "date", comment: "from deserializer" },
+      { name: "pubdate", type: "date", comment: "from deserializer" },
+      { name: "tags", type: "array<string>", comment: "from deserializer" },
+      { name: "summary", type: "string", comment: "from deserializer" },
+      { name: "feedurl", type: "string", comment: "from deserializer" },
+      { name: "title", type: "string", comment: "from deserializer" },
+    ],
+    location: pulumi.concat("s3://", articleBucket.bucket, "/backend-articles"),
+    inputFormat: "org.apache.hadoop.mapred.TextInputFormat",
+    outputFormat: "org.apache.hadoop.hive.ql.io.IgnoreKeyTextOutputFormat",
+    serDeInfo: {
+      name: "JsonSerDe",
+      serializationLibrary: "org.openx.data.jsonserde.JsonSerDe",
+      parameters: {
+        "serialization.format": "1",
+      },
+    },
+  },
+  parameters: {
+    transient_lastDdlTime: "1715108888",
+  },
+});
+
+// Define the `user_articles` table
+const userArticlesTable = new aws.glue.CatalogTable("user_articles", {
+  name: "user_articles",
+  databaseName: athenaFeedDatabase.name,
+  tableType: "EXTERNAL_TABLE",
+  storageDescriptor: {
+    columns: [
+      { name: "href", type: "string", comment: "from deserializer" },
+      { name: "feedurl", type: "string", comment: "from deserializer" },
+      { name: "userid", type: "string", comment: "from deserializer" },
+      { name: "content", type: "string", comment: "from deserializer" },
+      { name: "createdat", type: "date", comment: "from deserializer" },
+      { name: "updatedat", type: "date", comment: "from deserializer" },
+      { name: "date", type: "date", comment: "from deserializer" },
+      { name: "isliked", type: "boolean", comment: "from deserializer" },
+      { name: "isread", type: "boolean", comment: "from deserializer" },
+      { name: "issaved", type: "boolean", comment: "from deserializer" },
+      { name: "title", type: "string", comment: "from deserializer" },
+    ],
+    location: pulumi.concat("s3://", feedEventsBucket.bucket, "/articles"),
+    inputFormat: "org.apache.hadoop.mapred.TextInputFormat",
+    outputFormat: "org.apache.hadoop.hive.ql.io.HiveIgnoreKeyTextOutputFormat",
+    serDeInfo: {
+      name: "JsonSerDe",
+      serializationLibrary: "org.openx.data.jsonserde.JsonSerDe",
+      parameters: {
+        "serialization.format": "1",
+      },
+    },
+  },
+  parameters: {
+    transient_lastDdlTime: "1715108478",
+  },
+});
