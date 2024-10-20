@@ -43,7 +43,6 @@ const lambdaUserAccessKey = new aws.iam.AccessKey(
 const feedEventsBucket = new aws.s3.BucketV2(
   "feed_events_bucket",
   {
-    bucket: "lit-feed-dev-feed-events-bucket",
     grants: [
       {
         id: "af84821e7f22b2a9f90d6ec79dfe537c05e56f02d08875ada641428ededabfc4",
@@ -111,7 +110,6 @@ const processArticleLambdaLogGroup = new aws.cloudwatch.LogGroup(
 const articleBucket = new aws.s3.BucketV2(
   "article_bucket",
   {
-    bucket: "lit-feed-dev-article-bucket",
     grants: [
       {
         id: "af84821e7f22b2a9f90d6ec79dfe537c05e56f02d08875ada641428ededabfc4",
@@ -338,7 +336,6 @@ const trainLikedArticlesEcrImage = new awsx.ecr.Image(
 const articleTrainingDataBucket = new aws.s3.BucketV2(
   "article_training_data_bucket",
   {
-    bucket: "lit-feed-dev-article-training-data",
     grants: [
       {
         id: "af84821e7f22b2a9f90d6ec79dfe537c05e56f02d08875ada641428ededabfc4",
@@ -489,7 +486,6 @@ const getArticleScore = new aws.lambda.Function("get_article_score", {
 const mongoDumpBucket = new aws.s3.BucketV2(
   "mongo_dump_bucket",
   {
-    bucket: "lit-feed-dev-mongo-dump-bucket",
     lifecycleRules: [
       {
         abortIncompleteMultipartUploadDays: 0,
