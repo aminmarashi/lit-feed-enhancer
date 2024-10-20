@@ -374,7 +374,7 @@ const articleTrainingDataBucket = new aws.s3.BucketV2(
     ],
     versionings: [
       {
-        enabled: true,
+        enabled: false,
         mfaDelete: false,
       },
     ],
