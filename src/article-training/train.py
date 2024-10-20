@@ -22,7 +22,6 @@ def lambda_handler(event, context):
 
   boto3.setup_default_session(region_name='eu-west-1', profile_name='dev')
 
-  # Check the lit-feed-dev-article-models bucket for the model
   s3 = boto3.client('s3')
   bucket_name = 'lit-feed-dev-misc'
   print('Loading pipeline')

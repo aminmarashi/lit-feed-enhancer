@@ -17,7 +17,6 @@ def handler(event, context):
   articles = pd.DataFrame([event])
   userId = event['userId']
 
-  # Check the lit-feed-dev-article-models bucket for the model
   boto3.setup_default_session()
   try:
     pipeline = joblib.load(pipeline_full_filename)

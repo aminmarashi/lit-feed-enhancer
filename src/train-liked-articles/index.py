@@ -56,7 +56,6 @@ def handler(event, context):
   if not 'tags' in article:
     article['tags'] = []
 
-  # Check the lit-feed-dev-article-models bucket for the model
   boto3.setup_default_session()
   s3 = boto3.client('s3')
   shouldLoadFromScratch = True
