@@ -4,6 +4,8 @@ import { InvokeCommand, LambdaClient } from "@aws-sdk/client-lambda";
 const s3 = new S3Client();
 const lambda = new LambdaClient();
 const trainLikedArticlesLambdaArn = process.env.TRAIN_LIKED_ARTICLES_LAMBDA;
+const feedEventsBucket =
+  process.env.FEED_EVENT_BUCKET || "lit-feed-dev-feed-events-bucket";
 
 export async function handler(request: any) {
   const year = new Date().getFullYear();
@@ -24,7 +26,7 @@ export async function handler(request: any) {
     fullDocument.userId
   }/${operationType}/${year}/${zeroPaddedMonth}/${zeroPaddedDay}/${timestamp}-${eventId}.json`;
   const s3Params = {
-    Bucket: "lit-feed-dev-feed-events-bucket",
+    Bucket: feedEventsBucket,
     Key: s3Key,
     Body: JSON.stringify(fullDocument),
   };

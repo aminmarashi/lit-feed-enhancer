@@ -420,6 +420,7 @@ const syncFeedDatabase = new aws.lambda.Function("sync_feed_database", {
   environment: {
     variables: {
       TRAIN_LIKED_ARTICLES_LAMBDA: trainLikedArticles.arn,
+      FEED_EVENT_BUCKET: feedEventsBucket.bucket,
     },
   },
   architectures: ["x86_64"],
