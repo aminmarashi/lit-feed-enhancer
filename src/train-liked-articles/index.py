@@ -28,6 +28,13 @@ dislike_bias = float(os.environ.get('DISLIKE_BIAS', '1'))
 neutral_bias = float(os.environ.get('NEUTRAL_BIAS', '1'))
 print(f"Biased by: like: {like_bias}, dislike: {dislike_bias}, neutral: {neutral_bias}")
 
+def check_file_exists_in_s3(s3, Bucket, Key):
+  try:
+    s3.head_object(Bucket=Bucket, Key=Key)
+    return True
+  except:
+    return False
+
 def count_disliked_articles(articles, article_probabilities):
   disliked_articles = 0
   # Iterate over all articles and find the articles for which corresponding article_probabilities[0] > 0.33
@@ -121,10 +128,14 @@ def handler(event, context):
   classes = [-1, 0, 1]  # Ensure all classes are represented in the partial_fit call
 
   if shouldLoadFromScratch:
-    if len(y[y == -1]) == 0:
+    if len(y[y == -1]) == 0 and len(y[y == 1]) == 0:
+      print("No liked and disliked articles, moving two from neutral")
+      y.iloc[0] = -1
+      y.iloc[1] = 1
+    elif len(y[y == -1]) == 0:
       print("No disliked articles, moving one from neutral to disliked")
       y.iloc[0] = -1
-    if len(y[y == 1]) == 0:
+    elif len(y[y == 1]) == 0:
       print("No liked articles, moving one from neutral to liked")
       y.iloc[0] = 1
 
@@ -219,36 +230,8 @@ def handler(event, context):
 
 if __name__ == '__main__':
   result = handler({
-    'articleId': '65e1909c15e55e8deb1fd47e',
-    'feedUrl': 'https://hnrss.org/newest?points=100',
-    'href': 'https://twitter.com/nixcraft/status/1763124892986474689',
-    'content': 'article url: https://twitter.com/nixcraft/status/1763124892986474689\n' +
-      'comments url: https://news.ycombinator.com/item?id=39558365\n' +
-      'points: 162\n' +
-      '# comments: 69',
-    'createdAt': '2024-03-01t08:23:55.158z',
-    'date': '2024-03-01t03:53:26.000z',
-    'isRead': True,
-    'isSaved': False,
-    'summary': 'article url: https://twitter.com/nixcraft/status/1763124892986474689\n' +
-      'comments url: https://news.ycombinator.com/item?id=39558365\n' +
-      'points: 162\n' +
-      '# comments: 69',
-    'title': 'docusign just admitted that they use customer data to train ai',
-    'updatedAt': '2024-05-17t06:02:40.239z',
-    'feedId': '65e03508114dfe73e550d0b3',
-    'feedName': 'hn 100',
-    'synchedAt': '2024-03-05t08:53:34.086z',
-    'isLiked': None,
-    'userId': 'localhostUser',
-    'tags': None,
-    'openDuration': 8578928
+    'userId': '65a90719332e28717a201fef',
+    # 65a90719332e28717a201fef/
+    # 	65c808822106a2b232456a80/
   }, None)
   print(result)
-
-def check_file_exists_in_s3(s3, Bucket, Key):
-  try:
-    s3.head_object(Bucket=Bucket, Key=Key)
-    return True
-  except:
-    return False
