@@ -108,9 +108,71 @@ const processArticleLambdaLogGroup = new aws.cloudwatch.LogGroup(
     protect: true,
   }
 );
+const articleBucket = new aws.s3.BucketV2(
+  "article_bucket",
+  {
+    bucket: "lit-feed-dev-article-bucket",
+    grants: [
+      {
+        id: "af84821e7f22b2a9f90d6ec79dfe537c05e56f02d08875ada641428ededabfc4",
+        permissions: ["FULL_CONTROL"],
+        type: "CanonicalUser",
+        uri: "",
+      },
+    ],
+    lifecycleRules: [
+      {
+        abortIncompleteMultipartUploadDays: 0,
+        enabled: true,
+        expirations: [],
+        id: "manage-storage-lifecycle",
+        noncurrentVersionExpirations: [],
+        noncurrentVersionTransitions: [],
+        prefix: "",
+        tags: {},
+        transitions: [
+          {
+            days: 30,
+            storageClass: "GLACIER",
+          },
+        ],
+      },
+    ],
+    requestPayer: "BucketOwner",
+    serverSideEncryptionConfigurations: [
+      {
+        rules: [
+          {
+            applyServerSideEncryptionByDefaults: [
+              {
+                kmsMasterKeyId: "",
+                sseAlgorithm: "AES256",
+              },
+            ],
+            bucketKeyEnabled: false,
+          },
+        ],
+      },
+    ],
+    versionings: [
+      {
+        enabled: false,
+        mfaDelete: false,
+      },
+    ],
+  },
+  {
+    protect: true,
+  }
+);
 const processArticle = new aws.lambda.Function(
   "process_article",
   {
+    environment: {
+      variables: {
+        ARTICLE_BUCKET: articleBucket.bucket,
+      },
+    },
     architectures: ["x86_64"],
     ephemeralStorage: {
       size: 512,
@@ -380,63 +442,6 @@ const syncFeedDatabase = new aws.lambda.Function("sync_feed_database", {
     ".": new pulumi.asset.FileArchive("./dist/sync-feed-database"),
   }),
 });
-const articleBucket = new aws.s3.BucketV2(
-  "article_bucket",
-  {
-    bucket: "lit-feed-dev-article-bucket",
-    grants: [
-      {
-        id: "af84821e7f22b2a9f90d6ec79dfe537c05e56f02d08875ada641428ededabfc4",
-        permissions: ["FULL_CONTROL"],
-        type: "CanonicalUser",
-        uri: "",
-      },
-    ],
-    lifecycleRules: [
-      {
-        abortIncompleteMultipartUploadDays: 0,
-        enabled: true,
-        expirations: [],
-        id: "manage-storage-lifecycle",
-        noncurrentVersionExpirations: [],
-        noncurrentVersionTransitions: [],
-        prefix: "",
-        tags: {},
-        transitions: [
-          {
-            days: 30,
-            storageClass: "GLACIER",
-          },
-        ],
-      },
-    ],
-    requestPayer: "BucketOwner",
-    serverSideEncryptionConfigurations: [
-      {
-        rules: [
-          {
-            applyServerSideEncryptionByDefaults: [
-              {
-                kmsMasterKeyId: "",
-                sseAlgorithm: "AES256",
-              },
-            ],
-            bucketKeyEnabled: false,
-          },
-        ],
-      },
-    ],
-    versionings: [
-      {
-        enabled: false,
-        mfaDelete: false,
-      },
-    ],
-  },
-  {
-    protect: true,
-  }
-);
 
 const getArticleScoreLogGroup = new aws.cloudwatch.LogGroup(
   "get_article_score_lambda_log_group",

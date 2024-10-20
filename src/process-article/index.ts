@@ -6,6 +6,8 @@ import { S3Client, PutObjectCommand } from "@aws-sdk/client-s3";
 import { sanitizeUrlForS3Key } from "./utils/s3";
 
 const s3 = new S3Client();
+const articleBucket =
+  process.env.ARTICLE_BUCKET || "lit-feed-dev-article-bucket";
 
 export async function handler(request: never) {
   console.log("got request", request);
@@ -38,7 +40,7 @@ export async function handler(request: never) {
   const dayZeroPadded = day.toString().padStart(2, "0");
   const s3Key = `backend-articles/${year}/${monthZeroPadded}/${dayZeroPadded}/${articleUrl}/backend-article.json`;
   const s3Params = {
-    Bucket: "lit-feed-dev-article-bucket",
+    Bucket: articleBucket,
     Key: s3Key,
     Body: JSON.stringify(finalResult),
   };
