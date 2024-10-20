@@ -51,10 +51,14 @@ const feedEventsBucket = new aws.s3.BucketV2(
         enabled: true,
         expirations: [],
         id: "manage-storage-lifecycle",
-        noncurrentVersionExpirations: [],
         noncurrentVersionTransitions: [],
         prefix: "",
         tags: {},
+        noncurrentVersionExpirations: [
+          {
+            days: 1,
+          },
+        ],
         transitions: [
           {
             days: 30,
@@ -111,10 +115,14 @@ const articleBucket = new aws.s3.BucketV2(
         enabled: true,
         expirations: [],
         id: "manage-storage-lifecycle",
-        noncurrentVersionExpirations: [],
         noncurrentVersionTransitions: [],
         prefix: "",
         tags: {},
+        noncurrentVersionExpirations: [
+          {
+            days: 1,
+          },
+        ],
         transitions: [
           {
             days: 30,
@@ -332,10 +340,14 @@ const articleTrainingDataBucket = new aws.s3.BucketV2(
         enabled: true,
         expirations: [],
         id: "manage-storage-lifecycle",
-        noncurrentVersionExpirations: [],
         noncurrentVersionTransitions: [],
         prefix: "",
         tags: {},
+        noncurrentVersionExpirations: [
+          {
+            days: 1,
+          },
+        ],
         transitions: [
           {
             days: 30,
@@ -475,10 +487,14 @@ const mongoDumpBucket = new aws.s3.BucketV2(
         enabled: true,
         expirations: [],
         id: "manage-storage-lifecycle",
-        noncurrentVersionExpirations: [],
         noncurrentVersionTransitions: [],
         prefix: "",
         tags: {},
+        noncurrentVersionExpirations: [
+          {
+            days: 1,
+          },
+        ],
         transitions: [
           {
             days: 30,
