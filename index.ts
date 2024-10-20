@@ -163,51 +163,7 @@ const articleBucket = new aws.s3.BucketV2(
     protect: true,
   }
 );
-const processArticle = new aws.lambda.Function(
-  "process_article",
-  {
-    environment: {
-      variables: {
-        ARTICLE_BUCKET: articleBucket.bucket,
-      },
-    },
-    architectures: ["x86_64"],
-    ephemeralStorage: {
-      size: 512,
-    },
-    handler: "index.handler",
-    loggingConfig: {
-      logFormat: "Text",
-      logGroup: processArticleLambdaLogGroup.id,
-    },
-    memorySize: 512,
-    name: "process-article",
-    packageType: "Zip",
-    role: "arn:aws:iam::058264093352:role/lambda-execution-role",
-    runtime: aws.lambda.Runtime.NodeJS20dX,
-    timeout: 30,
-    tracingConfig: {
-      mode: "PassThrough",
-    },
-    code: new pulumi.asset.AssetArchive({
-      ".": new pulumi.asset.FileArchive("./dist/process-article"),
-    }),
-  },
-  {
-    protect: true,
-  }
-);
-const syncFeedDatabaseLambdaLogGroup = new aws.cloudwatch.LogGroup(
-  "sync_feed_database_lambda_log_group",
-  {
-    logGroupClass: "STANDARD",
-    name: "/aws/lambda/sync-feed-database",
-    retentionInDays: 7,
-  },
-  {
-    protect: true,
-  }
-);
+
 const lambdaExectutionRole = new aws.iam.Role(
   "lambda_execution_role",
   {
@@ -293,6 +249,52 @@ const lambdaExectutionRole = new aws.iam.Role(
       "arn:aws:iam::aws:policy/AmazonSSMReadOnlyAccess",
     ],
     name: "lambda-execution-role",
+  },
+  {
+    protect: true,
+  }
+);
+
+const processArticle = new aws.lambda.Function(
+  "process_article",
+  {
+    environment: {
+      variables: {
+        ARTICLE_BUCKET: articleBucket.bucket,
+      },
+    },
+    architectures: ["x86_64"],
+    ephemeralStorage: {
+      size: 512,
+    },
+    handler: "index.handler",
+    loggingConfig: {
+      logFormat: "Text",
+      logGroup: processArticleLambdaLogGroup.id,
+    },
+    memorySize: 512,
+    name: "process-article",
+    packageType: "Zip",
+    role: lambdaExectutionRole.arn,
+    runtime: aws.lambda.Runtime.NodeJS20dX,
+    timeout: 30,
+    tracingConfig: {
+      mode: "PassThrough",
+    },
+    code: new pulumi.asset.AssetArchive({
+      ".": new pulumi.asset.FileArchive("./dist/process-article"),
+    }),
+  },
+  {
+    protect: true,
+  }
+);
+const syncFeedDatabaseLambdaLogGroup = new aws.cloudwatch.LogGroup(
+  "sync_feed_database_lambda_log_group",
+  {
+    logGroupClass: "STANDARD",
+    name: "/aws/lambda/sync-feed-database",
+    retentionInDays: 7,
   },
   {
     protect: true,
