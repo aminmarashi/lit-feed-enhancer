@@ -1,3 +1,4 @@
 config:
+  aws:profile: prod
   lit-feed-enhancer:mongoUrl:
     secure: AAABAK5riOsIdzH6YN3ab4vbOzoBQFTn9rLHnJwt37R+hmleWmlYuVIqXI4qCdpHwxl331V8ktcaM6UMFQthcy+niEV6PkeoDkBCOCJByeM2IzY6OOGtrZqS6o9sVXLXP/VCQMflOGtrs0W9iWQE+nUDGsYuc+GBM9P1GEyzVQPdSQ==

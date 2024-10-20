@@ -4,7 +4,8 @@
   "scripts": {
     "build": "node esbuild.js",
     "push": "pnpm build && pulumi up",
-    "preview": "pnpm build && pulumi preview"
+    "preview": "pnpm build && pulumi preview",
+    "select": "pulumi stack select"
   },
   "main": "index.ts",
   "license": "MIT",

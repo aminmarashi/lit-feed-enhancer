@@ -1,3 +1,4 @@
 config:
+  aws:profile: dev
   lit-feed-enhancer:mongoUrl:
     secure: AAABALyRygnXHcW8NcOW++TpCFNv05JY2N0VPP+ZBLGFYbLFJYmW9SfrmB7epX7PLllUxGh4NUnD6dJFtvsDlZb76OuPjYcfANvTpLuUZU4JGn963yN/OaEjyfbBNwXHNKE33cdegu7ZrFkaVJVk4XZEpBUJ6cEs5G1s/xNZgyReoPfGmv4=

@@ -8,6 +8,7 @@ import * as aws from "@pulumi/aws";
 import * as awsx from "@pulumi/awsx";
 
 const config = new pulumi.Config();
+const stack = pulumi.getStack().match(/dev/) ? "dev" : "prod";
 
 const lambdaRunUser = new aws.iam.User(
   "lambda_run_user",
@@ -43,14 +44,7 @@ const lambdaUserAccessKey = new aws.iam.AccessKey(
 const feedEventsBucket = new aws.s3.BucketV2(
   "feed_events_bucket",
   {
-    grants: [
-      {
-        id: "af84821e7f22b2a9f90d6ec79dfe537c05e56f02d08875ada641428ededabfc4",
-        permissions: ["FULL_CONTROL"],
-        type: "CanonicalUser",
-        uri: "",
-      },
-    ],
+    bucket: `lit-feed-${stack}-feed-events-bucket`,
     lifecycleRules: [
       {
         abortIncompleteMultipartUploadDays: 0,
@@ -110,14 +104,7 @@ const processArticleLambdaLogGroup = new aws.cloudwatch.LogGroup(
 const articleBucket = new aws.s3.BucketV2(
   "article_bucket",
   {
-    grants: [
-      {
-        id: "af84821e7f22b2a9f90d6ec79dfe537c05e56f02d08875ada641428ededabfc4",
-        permissions: ["FULL_CONTROL"],
-        type: "CanonicalUser",
-        uri: "",
-      },
-    ],
+    bucket: `lit-feed-${stack}-article-bucket`,
     lifecycleRules: [
       {
         abortIncompleteMultipartUploadDays: 0,
@@ -338,14 +325,7 @@ const trainLikedArticlesEcrImage = new awsx.ecr.Image(
 const articleTrainingDataBucket = new aws.s3.BucketV2(
   "article_training_data_bucket",
   {
-    grants: [
-      {
-        id: "af84821e7f22b2a9f90d6ec79dfe537c05e56f02d08875ada641428ededabfc4",
-        permissions: ["FULL_CONTROL"],
-        type: "CanonicalUser",
-        uri: "",
-      },
-    ],
+    bucket: `lit-feed-${stack}-article-training-data`,
     lifecycleRules: [
       {
         abortIncompleteMultipartUploadDays: 0,
@@ -488,6 +468,7 @@ const getArticleScore = new aws.lambda.Function("get_article_score", {
 const mongoDumpBucket = new aws.s3.BucketV2(
   "mongo_dump_bucket",
   {
+    bucket: `lit-feed-${stack}-mongo-dump-bucket`,
     lifecycleRules: [
       {
         abortIncompleteMultipartUploadDays: 0,
@@ -571,17 +552,25 @@ const eventRule = new aws.cloudwatch.EventRule("mongo_dump_event_rule", {
   scheduleExpression: "cron(0 12 * * ? *)",
   description: "Fires every night at 12 oclock to dump the mongo database",
   isEnabled: true,
-  name: "mongo-dump-event-rule",
+  name: `mongo-dump-event-rule-${stack}`,
 });
 
-const eventTarget = new aws.cloudwatch.EventTarget("mongo_dump_event_target", {
-  arn: mongoDumpLambda.arn,
-  rule: eventRule.name,
-});
+const eventTarget = new aws.cloudwatch.EventTarget(
+  "mongo_dump_event_target",
+  {
+    arn: mongoDumpLambda.arn,
+    rule: eventRule.name,
+  },
+  { dependsOn: [eventRule] }
+);
 
-const lambdaPermission = new aws.lambda.Permission("lambdaPermissionForEvent", {
-  action: "lambda:InvokeFunction",
-  function: mongoDumpLambda.arn,
-  principal: "events.amazonaws.com",
-  sourceArn: eventRule.arn,
-});
+const lambdaPermission = new aws.lambda.Permission(
+  "lambdaPermissionForEvent",
+  {
+    action: "lambda:InvokeFunction",
+    function: mongoDumpLambda.arn,
+    principal: "events.amazonaws.com",
+    sourceArn: eventRule.arn,
+  },
+  { dependsOn: [eventRule] }
+);
