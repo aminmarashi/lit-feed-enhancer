@@ -407,33 +407,6 @@ const trainLikedArticles = new aws.lambda.Function("train_liked_articles", {
   },
   imageUri: trainLikedArticlesEcrImage.imageUri,
 });
-const syncFeedDatabase = new aws.lambda.Function("sync_feed_database", {
-  environment: {
-    variables: {
-      TRAIN_LIKED_ARTICLES_LAMBDA: trainLikedArticles.arn,
-      FEED_EVENT_BUCKET: feedEventsBucket.bucket,
-    },
-  },
-  architectures: ["x86_64"],
-  ephemeralStorage: {
-    size: 512,
-  },
-  handler: "index.handler",
-  loggingConfig: {
-    logFormat: "Text",
-    logGroup: syncFeedDatabaseLambdaLogGroup.id,
-  },
-  name: "sync-feed-database",
-  packageType: "Zip",
-  role: lambdaExectutionRole.arn,
-  runtime: aws.lambda.Runtime.NodeJS20dX,
-  tracingConfig: {
-    mode: "PassThrough",
-  },
-  code: new pulumi.asset.AssetArchive({
-    ".": new pulumi.asset.FileArchive("./dist/sync-feed-database"),
-  }),
-});
 
 const getArticleScoreLogGroup = new aws.cloudwatch.LogGroup(
   "get_article_score_lambda_log_group",
@@ -475,6 +448,80 @@ const getArticleScore = new aws.lambda.Function("get_article_score", {
     mode: "PassThrough",
   },
   imageUri: getArticleScoreImage.imageUri,
+});
+
+const updateArticleLogGroup = new aws.cloudwatch.LogGroup(
+  "update_article_lambda_log_group",
+  {
+    logGroupClass: "STANDARD",
+    name: "/aws/lambda/update-article",
+    retentionInDays: 7,
+  },
+  {
+    protect: true,
+  }
+);
+
+const updateArticle = new aws.lambda.Function("update_article", {
+  environment: {
+    variables: {
+      GET_ARTICLE_SCORE_LAMBDA: getArticleScore.arn,
+      MONGO_URL: config.requireSecret("mongoUrl"),
+      USER_FEED_DATABASE_NAME: config.require("userFeedDatabaseName"),
+      USER_ARTICLES_COLLECTION: config.require("userArticlesCollection"),
+    },
+  },
+  architectures: ["x86_64"],
+  ephemeralStorage: {
+    size: 512,
+  },
+  handler: "index.handler",
+  loggingConfig: {
+    logFormat: "Text",
+    logGroup: updateArticleLogGroup.id,
+  },
+  name: "update-article",
+  packageType: "Zip",
+  role: lambdaExectutionRole.arn,
+  runtime: aws.lambda.Runtime.NodeJS20dX,
+  timeout: 60 * 15,
+  tracingConfig: {
+    mode: "PassThrough",
+  },
+  code: new pulumi.asset.AssetArchive({
+    ".": new pulumi.asset.FileArchive("./dist/update-article"),
+  }),
+});
+
+const syncFeedDatabase = new aws.lambda.Function("sync_feed_database", {
+  environment: {
+    variables: {
+      TRAIN_LIKED_ARTICLES_LAMBDA: trainLikedArticles.arn,
+      UPDATE_ARTICLE_LAMBDA: updateArticle.arn,
+      FEED_EVENT_BUCKET: feedEventsBucket.bucket,
+      GET_ARTICLE_SCORE_LAMBDA: getArticleScore.arn,
+    },
+  },
+  architectures: ["x86_64"],
+  ephemeralStorage: {
+    size: 512,
+  },
+  handler: "index.handler",
+  loggingConfig: {
+    logFormat: "Text",
+    logGroup: syncFeedDatabaseLambdaLogGroup.id,
+  },
+  name: "sync-feed-database",
+  packageType: "Zip",
+  role: lambdaExectutionRole.arn,
+  runtime: aws.lambda.Runtime.NodeJS20dX,
+  timeout: 60 * 15,
+  tracingConfig: {
+    mode: "PassThrough",
+  },
+  code: new pulumi.asset.AssetArchive({
+    ".": new pulumi.asset.FileArchive("./dist/sync-feed-database"),
+  }),
 });
 
 const mongoDumpBucket = new aws.s3.BucketV2(

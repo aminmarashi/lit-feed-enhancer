@@ -1,13 +1,20 @@
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
 import { InvokeCommand, LambdaClient } from "@aws-sdk/client-lambda";
+import { requireEnv } from "@/utils";
 
 const s3 = new S3Client();
 const lambda = new LambdaClient();
-const trainLikedArticlesLambdaArn = process.env.TRAIN_LIKED_ARTICLES_LAMBDA;
-const feedEventsBucket =
-  process.env.FEED_EVENT_BUCKET || "lit-feed-dev-feed-events-bucket";
 
 export async function handler(request: any) {
+  const {
+    trainLikedArticlesLambdaArn,
+    updateArticleLambdaArn,
+    feedEventsBucket,
+  } = requireEnv({
+    trainLikedArticlesLambdaArn: "TRAIN_LIKED_ARTICLES_LAMBDA",
+    updateArticleLambdaArn: "UPDATE_ARTICLE_LAMBDA",
+    feedEventsBucket: "FEED_EVENT_BUCKET",
+  });
   const year = new Date().getFullYear();
   const zeroPaddedMonth = (new Date().getMonth() + 1)
     .toString()
@@ -34,6 +41,22 @@ export async function handler(request: any) {
   await s3.send(new PutObjectCommand(s3Params));
   console.log("saved event to S3", { s3Key, fullDocument, operationType });
 
+  if (collectionName === "articles" && operationType === "update") {
+    console.log(
+      `Invoking update article lambda: ${trainLikedArticlesLambdaArn}`
+    );
+    await lambda.send(
+      new InvokeCommand({
+        FunctionName: updateArticleLambdaArn,
+        Payload: JSON.stringify(fullDocument),
+        InvocationType: "Event",
+      })
+    );
+    console.log(
+      `Invoked update article lambda: ${trainLikedArticlesLambdaArn}`
+    );
+  }
+
   if (
     collectionName === "articles" &&
     operationType === "update" &&
@@ -41,23 +64,18 @@ export async function handler(request: any) {
       fullDocument.isLiked === true ||
       fullDocument.isLiked === false)
   ) {
-    if (trainLikedArticlesLambdaArn) {
-      // invoke lambda asynchronously
-      console.log(
-        `Invoking article training lambda: ${trainLikedArticlesLambdaArn}`
-      );
-      await lambda.send(
-        new InvokeCommand({
-          FunctionName: trainLikedArticlesLambdaArn,
-          Payload: JSON.stringify(fullDocument),
-          InvocationType: "Event",
-        })
-      );
-      console.log(
-        `Invoked article training lambda: ${trainLikedArticlesLambdaArn}`
-      );
-    } else {
-      console.log("No training lambda configured");
-    }
+    console.log(
+      `Invoking article training lambda: ${trainLikedArticlesLambdaArn}`
+    );
+    await lambda.send(
+      new InvokeCommand({
+        FunctionName: trainLikedArticlesLambdaArn,
+        Payload: JSON.stringify(fullDocument),
+        InvocationType: "Event",
+      })
+    );
+    console.log(
+      `Invoked article training lambda: ${trainLikedArticlesLambdaArn}`
+    );
   }
 }

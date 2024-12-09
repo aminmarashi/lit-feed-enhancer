@@ -66,10 +66,7 @@ def handler(event, context):
     else:
       result['like'] = probabilities[0][i]
   
-  return {
-    'statusCode': 200,
-    'body': result
-  }
+  return result
 
 if __name__ == '__main__':
   # If anything was piped to the app use that input from the pipe
