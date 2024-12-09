@@ -54,17 +54,8 @@ const feedEventsBucket = new aws.s3.BucketV2(
         noncurrentVersionTransitions: [],
         prefix: "",
         tags: {},
-        noncurrentVersionExpirations: [
-          {
-            days: 1,
-          },
-        ],
-        transitions: [
-          {
-            days: 30,
-            storageClass: "GLACIER",
-          },
-        ],
+        noncurrentVersionExpirations: [],
+        transitions: [],
       },
     ],
     requestPayer: "BucketOwner",
@@ -118,17 +109,8 @@ const articleBucket = new aws.s3.BucketV2(
         noncurrentVersionTransitions: [],
         prefix: "",
         tags: {},
-        noncurrentVersionExpirations: [
-          {
-            days: 1,
-          },
-        ],
-        transitions: [
-          {
-            days: 30,
-            storageClass: "GLACIER",
-          },
-        ],
+        noncurrentVersionExpirations: [],
+        transitions: [],
       },
     ],
     requestPayer: "BucketOwner",
@@ -361,17 +343,8 @@ const articleTrainingDataBucket = new aws.s3.BucketV2(
         noncurrentVersionTransitions: [],
         prefix: "",
         tags: {},
-        noncurrentVersionExpirations: [
-          {
-            days: 1,
-          },
-        ],
-        transitions: [
-          {
-            days: 30,
-            storageClass: "GLACIER",
-          },
-        ],
+        noncurrentVersionExpirations: [],
+        transitions: [],
       },
     ],
     requestPayer: "BucketOwner",
