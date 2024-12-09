@@ -1,9 +1,10 @@
-import { UserArticle } from "@/types";
+import { SqsMessage, UserArticle } from "@/types";
 import { requireEnv } from "@/utils";
 import { LambdaClient, InvokeCommand } from "@aws-sdk/client-lambda";
 import { MongoClient, ObjectId } from "mongodb";
 
-export async function handler(article: UserArticle) {
+export async function handler(message: SqsMessage) {
+  const article = JSON.parse(message.Records[0].body) as UserArticle;
   let {
     getArticleScoreLambda,
     mongoUrl,

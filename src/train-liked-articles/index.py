@@ -1,5 +1,6 @@
 #! /usr/bin/env python3
 import time
+import json
 import pandas as pd
 import joblib
 import boto3
@@ -43,8 +44,9 @@ def count_disliked_articles(articles, article_probabilities):
       disliked_articles += 1
   return disliked_articles
 def handler(event, context):
-  print(f'Event: {event}')
-  article = event
+  # const article = JSON.parse(message.Records[0].body) as UserArticle;
+  article = json.loads(event.get('Records')[0].get('body'))
+
   userId = article['userId']
   tmp_user_dir = f'{lambda_tmp_dir}/{userId}'
   if not os.path.exists(tmp_user_dir):

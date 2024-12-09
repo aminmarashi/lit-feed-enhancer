@@ -238,6 +238,24 @@ const lambdaExectutionRole = new aws.iam.Role(
           ],
         }),
       },
+      {
+        name: "sqs-listening-permissions",
+        policy: JSON.stringify({
+          Version: "2012-10-17",
+          Statement: [
+            {
+              Effect: "Allow",
+              Action: [
+                "sqs:sendMessage",
+                "sqs:ReceiveMessage",
+                "sqs:DeleteMessage",
+                "sqs:GetQueueAttributes",
+              ],
+              Resource: "*",
+            },
+          ],
+        }),
+      },
     ],
     managedPolicyArns: [
       "arn:aws:iam::aws:policy/service-role/AWSLambdaBasicExecutionRole",
@@ -384,10 +402,18 @@ const articleTrainingDataBucket = new aws.s3.BucketV2(
   }
 );
 
+const trainLikedArticlesQueue = new aws.sqs.Queue(
+  "train_liked_articles_queue",
+  {
+    visibilityTimeoutSeconds: 900, // 15 minutes
+  }
+);
+
 const trainLikedArticles = new aws.lambda.Function("train_liked_articles", {
   environment: {
     variables: {
       TRAINING_DATA_BUCKET_NAME: articleTrainingDataBucket.bucket,
+      SQS_QUEUE_URL: trainLikedArticlesQueue.url,
     },
   },
   ephemeralStorage: {
@@ -407,6 +433,15 @@ const trainLikedArticles = new aws.lambda.Function("train_liked_articles", {
   },
   imageUri: trainLikedArticlesEcrImage.imageUri,
 });
+
+const eventSourceMappingTrainLikedArticles = new aws.lambda.EventSourceMapping(
+  "event_source_mapping_train_liked_articles",
+  {
+    batchSize: 1,
+    eventSourceArn: trainLikedArticlesQueue.arn,
+    functionName: trainLikedArticles.arn,
+  }
+);
 
 const getArticleScoreLogGroup = new aws.cloudwatch.LogGroup(
   "get_article_score_lambda_log_group",
@@ -450,6 +485,10 @@ const getArticleScore = new aws.lambda.Function("get_article_score", {
   imageUri: getArticleScoreImage.imageUri,
 });
 
+const updateArticleQueue = new aws.sqs.Queue("update_article_queue", {
+  visibilityTimeoutSeconds: 900, // 15 minutes
+});
+
 const updateArticleLogGroup = new aws.cloudwatch.LogGroup(
   "update_article_lambda_log_group",
   {
@@ -469,6 +508,7 @@ const updateArticle = new aws.lambda.Function("update_article", {
       MONGO_URL: config.requireSecret("mongoUrl"),
       USER_FEED_DATABASE_NAME: config.require("userFeedDatabaseName"),
       USER_ARTICLES_COLLECTION: config.require("userArticlesCollection"),
+      SQS_QUEUE_URL: updateArticleQueue.url,
     },
   },
   architectures: ["x86_64"],
@@ -493,11 +533,20 @@ const updateArticle = new aws.lambda.Function("update_article", {
   }),
 });
 
+const eventSourceMappingUpdateArticle = new aws.lambda.EventSourceMapping(
+  "event_source_mapping_update_article",
+  {
+    batchSize: 1,
+    eventSourceArn: updateArticleQueue.arn,
+    functionName: updateArticle.arn,
+  }
+);
+
 const syncFeedDatabase = new aws.lambda.Function("sync_feed_database", {
   environment: {
     variables: {
-      TRAIN_LIKED_ARTICLES_LAMBDA: trainLikedArticles.arn,
-      UPDATE_ARTICLE_LAMBDA: updateArticle.arn,
+      TRAIN_LIKED_ARTICLES_QUEUE_URL: trainLikedArticlesQueue.url,
+      UPDATE_ARTICLE_QUEUE_URL: updateArticleQueue.url,
       FEED_EVENT_BUCKET: feedEventsBucket.bucket,
       GET_ARTICLE_SCORE_LAMBDA: getArticleScore.arn,
     },

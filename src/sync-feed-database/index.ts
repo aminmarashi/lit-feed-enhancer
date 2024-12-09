@@ -1,19 +1,20 @@
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
-import { InvokeCommand, LambdaClient } from "@aws-sdk/client-lambda";
+import { SendMessageCommand, SQSClient } from "@aws-sdk/client-sqs";
 import { requireEnv } from "@/utils";
 
 const s3 = new S3Client();
-const lambda = new LambdaClient();
+const sqs = new SQSClient();
 
 export async function handler(request: any) {
+  console.log(JSON.stringify(request));
   const {
-    trainLikedArticlesLambdaArn,
-    updateArticleLambdaArn,
+    trainLikedArticlesQueueUrl,
+    updateArticleQueueUrl,
     feedEventsBucket,
   } = requireEnv({
-    trainLikedArticlesLambdaArn: "TRAIN_LIKED_ARTICLES_LAMBDA",
-    updateArticleLambdaArn: "UPDATE_ARTICLE_LAMBDA",
     feedEventsBucket: "FEED_EVENT_BUCKET",
+    trainLikedArticlesQueueUrl: "TRAIN_LIKED_ARTICLES_QUEUE_URL",
+    updateArticleQueueUrl: "UPDATE_ARTICLE_QUEUE_URL",
   });
   const year = new Date().getFullYear();
   const zeroPaddedMonth = (new Date().getMonth() + 1)
@@ -43,17 +44,16 @@ export async function handler(request: any) {
 
   if (collectionName === "articles" && operationType === "update") {
     console.log(
-      `Invoking update article lambda: ${trainLikedArticlesLambdaArn}`
+      `Pushing update article message to queue: ${updateArticleQueueUrl}`
     );
-    await lambda.send(
-      new InvokeCommand({
-        FunctionName: updateArticleLambdaArn,
-        Payload: JSON.stringify(fullDocument),
-        InvocationType: "Event",
+    await sqs.send(
+      new SendMessageCommand({
+        QueueUrl: updateArticleQueueUrl,
+        MessageBody: JSON.stringify(fullDocument),
       })
     );
     console.log(
-      `Invoked update article lambda: ${trainLikedArticlesLambdaArn}`
+      `Pushed update article message to queue: ${updateArticleQueueUrl}`
     );
   }
 
@@ -65,17 +65,16 @@ export async function handler(request: any) {
       fullDocument.isLiked === false)
   ) {
     console.log(
-      `Invoking article training lambda: ${trainLikedArticlesLambdaArn}`
+      `Pushing article training message to queue: ${trainLikedArticlesQueueUrl}`
     );
-    await lambda.send(
-      new InvokeCommand({
-        FunctionName: trainLikedArticlesLambdaArn,
-        Payload: JSON.stringify(fullDocument),
-        InvocationType: "Event",
+    await sqs.send(
+      new SendMessageCommand({
+        QueueUrl: trainLikedArticlesQueueUrl,
+        MessageBody: JSON.stringify(fullDocument),
       })
     );
     console.log(
-      `Invoked article training lambda: ${trainLikedArticlesLambdaArn}`
+      `Pushed article training message to queue: ${trainLikedArticlesQueueUrl}`
     );
   }
 }

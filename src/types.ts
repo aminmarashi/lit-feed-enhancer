@@ -91,3 +91,27 @@ export type UserArticle = z.infer<typeof UserArticleSchema>;
 export type BackendArticle = z.infer<typeof BackendArticleSchema>;
 export type User = z.infer<typeof UserSchema>;
 export type ArticleScore = UserArticle["score"];
+
+export const SqsMessageSchema = z.object({
+  Records: z.array(
+    z.object({
+      messageId: z.string(),
+      receiptHandle: z.string(),
+      body: z.string(),
+      attributes: z.object({
+        ApproximateReceiveCount: z.string(),
+        AWSTraceHeader: z.string(),
+        SentTimestamp: z.string(),
+        SenderId: z.string(),
+        ApproximateFirstReceiveTimestamp: z.string(),
+      }),
+      messageAttributes: z.object({}),
+      md5OfBody: z.string(),
+      eventSource: z.string(),
+      eventSourceARN: z.string(),
+      awsRegion: z.string(),
+    })
+  ),
+});
+
+export type SqsMessage = z.infer<typeof SqsMessageSchema>;

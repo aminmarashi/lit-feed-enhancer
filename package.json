@@ -13,6 +13,7 @@
   "dependencies": {
     "@aws-sdk/client-lambda": "^3.614.0",
     "@aws-sdk/client-s3": "^3.609.0",
+    "@aws-sdk/client-sqs": "^3.709.0",
     "cheerio": "1.0.0-rc.12",
     "mongodb": "^6.11.0",
     "nlcst-to-string": "^4.0.0",
