@@ -72,10 +72,6 @@ export async function handler(message: SqsMessage) {
       { $set: { score } }
     );
 
-    if (!updateResult.modifiedCount) {
-      throw new Error(`Failed to update article score: ${article._id}`);
-    }
-
     console.log("Article score updated", { article, score, updateResult });
 
     return score;

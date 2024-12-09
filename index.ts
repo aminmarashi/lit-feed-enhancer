@@ -375,10 +375,18 @@ const articleTrainingDataBucket = new aws.s3.BucketV2(
   }
 );
 
+const trainLikedArticlesDLQ = new aws.sqs.Queue("train_liked_articles_dlq", {
+  visibilityTimeoutSeconds: 900, // 15 minutes
+});
+
 const trainLikedArticlesQueue = new aws.sqs.Queue(
   "train_liked_articles_queue",
   {
     visibilityTimeoutSeconds: 900, // 15 minutes
+    redrivePolicy: pulumi.interpolate`{
+      "deadLetterTargetArn": "${trainLikedArticlesDLQ.arn}",
+      "maxReceiveCount": 5
+    }`,
   }
 );
 
@@ -458,8 +466,16 @@ const getArticleScore = new aws.lambda.Function("get_article_score", {
   imageUri: getArticleScoreImage.imageUri,
 });
 
+const updateArticleDLQ = new aws.sqs.Queue("update_article_dlq", {
+  visibilityTimeoutSeconds: 900, // 15 minutes
+});
+
 const updateArticleQueue = new aws.sqs.Queue("update_article_queue", {
   visibilityTimeoutSeconds: 900, // 15 minutes
+  redrivePolicy: pulumi.interpolate`{
+      "deadLetterTargetArn": "${updateArticleDLQ.arn}",
+      "maxReceiveCount": 5
+    }`,
 });
 
 const updateArticleLogGroup = new aws.cloudwatch.LogGroup(
