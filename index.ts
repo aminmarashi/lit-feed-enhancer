@@ -424,60 +424,6 @@ const eventSourceMappingTrainLikedArticles = new aws.lambda.EventSourceMapping(
   }
 );
 
-const getArticleScoreLogGroup = new aws.cloudwatch.LogGroup(
-  "get_article_score_lambda_log_group",
-  {
-    logGroupClass: "STANDARD",
-    name: "/aws/lambda/get-article-score",
-    retentionInDays: 7,
-  },
-  {
-    protect: true,
-  }
-);
-
-const getArticleScoreImage = new awsx.ecr.Image("get_article_score_ecr_image", {
-  repositoryUrl: lambdaImagesEcrRepository.repositoryUrl,
-  context: "./src/get-article-score",
-  platform: "linux/amd64",
-});
-
-const getArticleScore = new aws.lambda.Function("get_article_score", {
-  environment: {
-    variables: {
-      TRAINING_DATA_BUCKET_NAME: articleTrainingDataBucket.bucket,
-    },
-  },
-  ephemeralStorage: {
-    size: 512,
-  },
-  loggingConfig: {
-    logFormat: "Text",
-    logGroup: getArticleScoreLogGroup.id,
-  },
-  memorySize: 2048,
-  name: "get-article-score",
-  packageType: "Image",
-  role: lambdaExectutionRole.arn,
-  timeout: 60 * 15,
-  tracingConfig: {
-    mode: "PassThrough",
-  },
-  imageUri: getArticleScoreImage.imageUri,
-});
-
-const updateArticleDLQ = new aws.sqs.Queue("update_article_dlq", {
-  visibilityTimeoutSeconds: 900, // 15 minutes
-});
-
-const updateArticleQueue = new aws.sqs.Queue("update_article_queue", {
-  visibilityTimeoutSeconds: 900, // 15 minutes
-  redrivePolicy: pulumi.interpolate`{
-      "deadLetterTargetArn": "${updateArticleDLQ.arn}",
-      "maxReceiveCount": 5
-    }`,
-});
-
 const updateArticleLogGroup = new aws.cloudwatch.LogGroup(
   "update_article_lambda_log_group",
   {
@@ -490,36 +436,49 @@ const updateArticleLogGroup = new aws.cloudwatch.LogGroup(
   }
 );
 
+const updateArticleImage = new awsx.ecr.Image("update_article_ecr_image", {
+  repositoryUrl: lambdaImagesEcrRepository.repositoryUrl,
+  context: "./src/updateArticle",
+  platform: "linux/amd64",
+});
+
 const updateArticle = new aws.lambda.Function("update_article", {
   environment: {
     variables: {
-      GET_ARTICLE_SCORE_LAMBDA: getArticleScore.arn,
+      TRAINING_DATA_BUCKET_NAME: articleTrainingDataBucket.bucket,
       MONGO_URL: config.requireSecret("mongoUrl"),
       USER_FEED_DATABASE_NAME: config.require("userFeedDatabaseName"),
       USER_ARTICLES_COLLECTION: config.require("userArticlesCollection"),
-      SQS_QUEUE_URL: updateArticleQueue.url,
     },
   },
-  architectures: ["x86_64"],
   ephemeralStorage: {
     size: 512,
   },
-  handler: "index.handler",
   loggingConfig: {
     logFormat: "Text",
     logGroup: updateArticleLogGroup.id,
   },
-  name: "update-article",
-  packageType: "Zip",
+  memorySize: 2048,
+  name: "updateArticle",
+  packageType: "Image",
   role: lambdaExectutionRole.arn,
-  runtime: aws.lambda.Runtime.NodeJS20dX,
   timeout: 60 * 15,
   tracingConfig: {
     mode: "PassThrough",
   },
-  code: new pulumi.asset.AssetArchive({
-    ".": new pulumi.asset.FileArchive("./dist/update-article"),
-  }),
+  imageUri: updateArticleImage.imageUri,
+});
+
+const updateArticleDLQ = new aws.sqs.Queue("update_article_dlq", {
+  visibilityTimeoutSeconds: 900, // 15 minutes
+});
+
+const updateArticleQueue = new aws.sqs.Queue("update_article_queue", {
+  visibilityTimeoutSeconds: 900, // 15 minutes
+  redrivePolicy: pulumi.interpolate`{
+      "deadLetterTargetArn": "${updateArticleDLQ.arn}",
+      "maxReceiveCount": 5
+    }`,
 });
 
 const eventSourceMappingUpdateArticle = new aws.lambda.EventSourceMapping(
@@ -537,7 +496,6 @@ const syncFeedDatabase = new aws.lambda.Function("sync_feed_database", {
       TRAIN_LIKED_ARTICLES_QUEUE_URL: trainLikedArticlesQueue.url,
       UPDATE_ARTICLE_QUEUE_URL: updateArticleQueue.url,
       FEED_EVENT_BUCKET: feedEventsBucket.bucket,
-      GET_ARTICLE_SCORE_LAMBDA: getArticleScore.arn,
     },
   },
   architectures: ["x86_64"],

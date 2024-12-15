@@ -5,17 +5,31 @@ import boto3
 import json
 import os
 import sys
+from pymongo import MongoClient
+from bson import ObjectId
 from custom_transformers import OrderedTagVectorizer
 
 bucket_name = os.environ.get('TRAINING_DATA_BUCKET_NAME')
+mongo_url = os.environ.get('MONGO_URL')
+user_feed_database_name = os.environ.get('USER_FEED_DATABASE_NAME')
+user_articles_collection = os.environ.get('USER_ARTICLES_COLLECTION')
 pipeline_filename = 'complete_pipeline.joblib'
 lambda_tmp_dir = '/tmp'
 pipeline_full_filename = f'{lambda_tmp_dir}/{pipeline_filename}'
 
 def handler(event, context):
-  print(f'Event: {event}')
-  articles = pd.DataFrame([event])
-  userId = event['userId']
+  article = json.loads(event.get('Records')[0].get('body'))
+  print(f'Article: {article}')
+  articles = pd.DataFrame([article])
+  userId = article['userId']
+
+  # Check if the article already has a score
+  if 'score' in article and article['score']:
+    print(f"Article already has a score: {article['score']}")
+    return {
+      'statusCode': 200,
+      'body': json.dumps(f"Article already has a score: {article['score']}")
+    }
 
   boto3.setup_default_session()
   try:
@@ -46,7 +60,6 @@ def handler(event, context):
     if column not in expected_keys:
       articles.drop(column, axis=1, inplace=True, errors='ignore')
 
-
   preprocessor = pipeline.named_steps['preprocessor']
   classifier = pipeline.named_steps['classifier']
 
@@ -65,8 +78,26 @@ def handler(event, context):
       result['neutral'] = probabilities[0][i]
     else:
       result['like'] = probabilities[0][i]
-  
-  return result
+
+  # Update article score in MongoDB
+  mongo_client = MongoClient(mongo_url)
+  try:
+    db = mongo_client[user_feed_database_name]
+    articles_collection = db[user_articles_collection]
+
+    update_result = articles_collection.update_one(
+      { '_id': ObjectId(article['_id']) },
+      { '$set': { 'score': result } }
+    )
+
+    print("Article score updated", { 'article': article, 'score': result, 'updateResult': update_result })
+  finally:
+    mongo_client.close()
+
+  return {
+    'statusCode': 200,
+    'body': result
+  }
 
 if __name__ == '__main__':
   # If anything was piped to the app use that input from the pipe

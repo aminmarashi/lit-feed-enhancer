@@ -44,7 +44,6 @@ def count_disliked_articles(articles, article_probabilities):
       disliked_articles += 1
   return disliked_articles
 def handler(event, context):
-  # const article = JSON.parse(message.Records[0].body) as UserArticle;
   article = json.loads(event.get('Records')[0].get('body'))
 
   userId = article['userId']
