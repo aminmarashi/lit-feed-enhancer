@@ -440,7 +440,7 @@ const updateArticleScoreImage = new awsx.ecr.Image(
   "update_article_score_ecr_image",
   {
     repositoryUrl: lambdaImagesEcrRepository.repositoryUrl,
-    context: "./src/updateArticleScore",
+    context: "./src/update-article-score",
     platform: "linux/amd64",
   }
 );
