@@ -424,11 +424,11 @@ const eventSourceMappingTrainLikedArticles = new aws.lambda.EventSourceMapping(
   }
 );
 
-const updateArticleLogGroup = new aws.cloudwatch.LogGroup(
-  "update_article_lambda_log_group",
+const updateArticleScoreLogGroup = new aws.cloudwatch.LogGroup(
+  "update_article_score_lambda_log_group",
   {
     logGroupClass: "STANDARD",
-    name: "/aws/lambda/update-article",
+    name: "/aws/lambda/update-article-score",
     retentionInDays: 7,
   },
   {
@@ -436,13 +436,16 @@ const updateArticleLogGroup = new aws.cloudwatch.LogGroup(
   }
 );
 
-const updateArticleImage = new awsx.ecr.Image("update_article_ecr_image", {
-  repositoryUrl: lambdaImagesEcrRepository.repositoryUrl,
-  context: "./src/updateArticle",
-  platform: "linux/amd64",
-});
+const updateArticleScoreImage = new awsx.ecr.Image(
+  "update_article_score_ecr_image",
+  {
+    repositoryUrl: lambdaImagesEcrRepository.repositoryUrl,
+    context: "./src/updateArticleScore",
+    platform: "linux/amd64",
+  }
+);
 
-const updateArticle = new aws.lambda.Function("update_article", {
+const updateArticleScore = new aws.lambda.Function("update_article_score", {
   environment: {
     variables: {
       TRAINING_DATA_BUCKET_NAME: articleTrainingDataBucket.bucket,
@@ -456,37 +459,40 @@ const updateArticle = new aws.lambda.Function("update_article", {
   },
   loggingConfig: {
     logFormat: "Text",
-    logGroup: updateArticleLogGroup.id,
+    logGroup: updateArticleScoreLogGroup.id,
   },
   memorySize: 2048,
-  name: "updateArticle",
+  name: "updateArticleScore",
   packageType: "Image",
   role: lambdaExectutionRole.arn,
   timeout: 60 * 15,
   tracingConfig: {
     mode: "PassThrough",
   },
-  imageUri: updateArticleImage.imageUri,
+  imageUri: updateArticleScoreImage.imageUri,
 });
 
-const updateArticleDLQ = new aws.sqs.Queue("update_article_dlq", {
+const updateArticleScoreDLQ = new aws.sqs.Queue("update_article_score_dlq", {
   visibilityTimeoutSeconds: 900, // 15 minutes
 });
 
-const updateArticleQueue = new aws.sqs.Queue("update_article_queue", {
-  visibilityTimeoutSeconds: 900, // 15 minutes
-  redrivePolicy: pulumi.interpolate`{
-      "deadLetterTargetArn": "${updateArticleDLQ.arn}",
+const updateArticleScoreQueue = new aws.sqs.Queue(
+  "update_article_score_queue",
+  {
+    visibilityTimeoutSeconds: 900, // 15 minutes
+    redrivePolicy: pulumi.interpolate`{
+      "deadLetterTargetArn": "${updateArticleScoreDLQ.arn}",
       "maxReceiveCount": 5
     }`,
-});
+  }
+);
 
 const eventSourceMappingUpdateArticle = new aws.lambda.EventSourceMapping(
-  "event_source_mapping_update_article",
+  "event_source_mapping_update_article_score",
   {
     batchSize: 1,
-    eventSourceArn: updateArticleQueue.arn,
-    functionName: updateArticle.arn,
+    eventSourceArn: updateArticleScoreQueue.arn,
+    functionName: updateArticleScore.arn,
   }
 );
 
@@ -494,7 +500,7 @@ const syncFeedDatabase = new aws.lambda.Function("sync_feed_database", {
   environment: {
     variables: {
       TRAIN_LIKED_ARTICLES_QUEUE_URL: trainLikedArticlesQueue.url,
-      UPDATE_ARTICLE_QUEUE_URL: updateArticleQueue.url,
+      UPDATE_ARTICLE_SCORE_QUEUE_URL: updateArticleScoreQueue.url,
       FEED_EVENT_BUCKET: feedEventsBucket.bucket,
     },
   },

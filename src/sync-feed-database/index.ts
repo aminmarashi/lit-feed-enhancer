@@ -9,12 +9,12 @@ export async function handler(request: any) {
   console.log(JSON.stringify(request));
   const {
     trainLikedArticlesQueueUrl,
-    updateArticleQueueUrl,
+    updateArticleScoreQueueUrl,
     feedEventsBucket,
   } = requireEnv({
     feedEventsBucket: "FEED_EVENT_BUCKET",
     trainLikedArticlesQueueUrl: "TRAIN_LIKED_ARTICLES_QUEUE_URL",
-    updateArticleQueueUrl: "UPDATE_ARTICLE_QUEUE_URL",
+    updateArticleScoreQueueUrl: "UPDATE_ARTICLE_SCORE_QUEUE_URL",
   });
   const year = new Date().getFullYear();
   const zeroPaddedMonth = (new Date().getMonth() + 1)
@@ -44,16 +44,16 @@ export async function handler(request: any) {
 
   if (collectionName === "articles" && operationType === "update") {
     console.log(
-      `Pushing update article message to queue: ${updateArticleQueueUrl}`
+      `Pushing update article message to queue: ${updateArticleScoreQueueUrl}`
     );
     await sqs.send(
       new SendMessageCommand({
-        QueueUrl: updateArticleQueueUrl,
+        QueueUrl: updateArticleScoreQueueUrl,
         MessageBody: JSON.stringify(fullDocument),
       })
     );
     console.log(
-      `Pushed update article message to queue: ${updateArticleQueueUrl}`
+      `Pushed update article message to queue: ${updateArticleScoreQueueUrl}`
     );
   }
 
