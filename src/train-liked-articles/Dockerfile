@@ -1,10 +1,8 @@
 FROM public.ecr.aws/lambda/python:3.12
 
-# Create a directory for your application
 RUN mkdir -p /app/dependencies
 WORKDIR /app
 
-# Copy your require"train-liked-articles-lambda-log-group",ments.txt file
 COPY requirements.txt ${LAMBDA_TASK_ROOT}
 WORKDIR ${LAMBDA_TASK_ROOT}
 
