@@ -90,7 +90,7 @@ const processArticleLambdaLogGroup = new aws.cloudwatch.LogGroup(
   {
     logGroupClass: "STANDARD",
     name: "/aws/lambda/process-article",
-    retentionInDays: 7,
+    retentionInDays: 30,
   },
   {
     protect: true,
@@ -289,7 +289,7 @@ const syncFeedDatabaseLambdaLogGroup = new aws.cloudwatch.LogGroup(
   {
     logGroupClass: "STANDARD",
     name: "/aws/lambda/sync-feed-database",
-    retentionInDays: 7,
+    retentionInDays: 30,
   },
   {
     protect: true,
@@ -301,7 +301,7 @@ const trainLikedArticlesLogGroup = new aws.cloudwatch.LogGroup(
   {
     logGroupClass: "STANDARD",
     name: "/aws/lambda/train-liked-articles",
-    retentionInDays: 7,
+    retentionInDays: 30,
   },
   {
     protect: true,
@@ -429,7 +429,7 @@ const updateArticleScoreLogGroup = new aws.cloudwatch.LogGroup(
   {
     logGroupClass: "STANDARD",
     name: "/aws/lambda/update-article-score",
-    retentionInDays: 7,
+    retentionInDays: 30,
   },
   {
     protect: true,
