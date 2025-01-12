@@ -586,6 +586,18 @@ const mongoDumpImage = new awsx.ecr.Image("mongo_dump_ecr_image", {
   platform: "linux/amd64",
 });
 
+const mongoDumpLambdaLogGroup = new aws.cloudwatch.LogGroup(
+  "mongo_dump_lambda_log_group",
+  {
+    logGroupClass: "STANDARD",
+    name: "/aws/lambda/mongodump",
+    retentionInDays: 30,
+  },
+  {
+    protect: true,
+  }
+);
+
 const mongoDumpLambda = new aws.lambda.Function("mongo_dump_lambda", {
   environment: {
     variables: {
@@ -599,7 +611,7 @@ const mongoDumpLambda = new aws.lambda.Function("mongo_dump_lambda", {
   },
   loggingConfig: {
     logFormat: "Text",
-    logGroup: "mongodump-lambda-log-group",
+    logGroup: mongoDumpLambdaLogGroup.id,
   },
   timeout: 60 * 15,
   memorySize: 512,
