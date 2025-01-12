@@ -1,6 +1,6 @@
-numpy
-scikit-learn
-pandas
-boto3
-joblib
-pymongo
+numpy==2.2.1
+scikit-learn==1.6.1
+pandas==2.2.3
+boto3==1.35.97
+joblib==1.4.2
+pymongo==4.10.1
