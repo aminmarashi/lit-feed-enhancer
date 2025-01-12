@@ -1,7 +1,7 @@
 config:
   aws:profile: prod
   lit-feed-enhancer:mongoUrl:
-    secure: AAABAK5riOsIdzH6YN3ab4vbOzoBQFTn9rLHnJwt37R+hmleWmlYuVIqXI4qCdpHwxl331V8ktcaM6UMFQthcy+niEV6PkeoDkBCOCJByeM2IzY6OOGtrZqS6o9sVXLXP/VCQMflOGtrs0W9iWQE+nUDGsYuc+GBM9P1GEyzVQPdSQ==
+    secure: AAABAD17HrHaGK+dfC8Ew+aukqA2ZTvZyFJVdmE8WaoL8UAHccXuOQMASYlBV5PqItstW9COEi/0+1ju/85Ltg40l+6jm/kiYw4fdEBEQksOwMKZ5nX6/wrP97XVebijnk67ZNFH5lmyFOyJ7wOXDud1e1BAb0Oh2P/4fYLWc+Peckzi
   lit-feed-enhancer:userArticlesCollection: articles
   lit-feed-enhancer:userFeedDatabaseName: feed
   lit-feed-enhancer:userFeedsCollection: feeds
