@@ -54,6 +54,7 @@ export const UserArticleSchema = z.object({
       neutral: z.number().optional(),
       like: z.number().optional(),
       dislike: z.number().optional(),
+      preferenceScore: z.number().optional(),
     })
     .optional(),
 });

@@ -78,6 +78,7 @@ def handler(event, context):
       result['neutral'] = probabilities[0][i]
     else:
       result['like'] = probabilities[0][i]
+  result['preferenceScore'] = result['like'] - result['dislike']
 
   # Update article score in MongoDB
   mongo_client = MongoClient(mongo_url)
