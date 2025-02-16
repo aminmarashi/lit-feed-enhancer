@@ -1,5 +1,5 @@
-import { BackendArticle, UserArticleSchema } from "@/types";
-import { backendToUserArticle, requireEnv } from "@/utils";
+import { BackendArticle } from "@/types";
+import { requireEnv } from "@/utils";
 import { MongoClient } from "mongodb";
 
 export async function commitArticleToDb(fullDocument: BackendArticle) {
@@ -42,7 +42,6 @@ export async function commitArticleToDb(fullDocument: BackendArticle) {
 
   const updatedBackendArticles = await backendArticles.updateOne(
     {
-      feedUrl: fullDocument.feedUrl,
       link: fullDocument.link,
     },
     {
@@ -50,33 +49,34 @@ export async function commitArticleToDb(fullDocument: BackendArticle) {
         textContent: fullDocument.textContent,
         summary: fullDocument.summary,
         tags: fullDocument.tags,
+        updatedAt: new Date(),
       },
     }
   );
 
-  console.log("Updated backend articles", {
+  console.log("Updated backend articles processed data", {
     updatedBackendArticles,
-    backendArticles,
   });
 
   /**
-   * This has a race condition with user articles being inserted
-   * Basically we are not 100% sure a user article is created at this point
-   * Needs refactoring of article fetching to ensure user articles are created before this point
+   * This will update any user articles with the same link as the backend article regardless of their feed
+   * It could be that some of the newly created user articles are missed to be updated due to a race condition with inserting user articles and this event
    */
-  const userArticle = {
-    ...backendToUserArticle(fullDocument),
-    synchedAt: new Date(),
-  };
   const updatedArticles = await userArticles.updateMany(
     {
-      feedUrl: fullDocument.feedUrl,
       href: fullDocument.link,
     },
     {
-      $set: userArticle,
+      $set: {
+        summary: fullDocument.summary,
+        tags: fullDocument.tags,
+        updatedAt: new Date(),
+      },
     }
   );
 
-  console.log("Updated articles with link", { updatedArticles, userArticle });
+  console.log("Updated user articles processed data", {
+    updatedArticles,
+    userArticle,
+  });
 }

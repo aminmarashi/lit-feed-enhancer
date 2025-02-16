@@ -5,6 +5,7 @@ import { fetchArticleContent } from "./fetchArticleContent";
 import { makeArticleSummary } from "./makeArticleSummary";
 import { makeArticleTags } from "./makeArticleTags";
 import { sanitizeUrlForS3Key } from "./utils/s3";
+import { getProcessedArticle } from "./getProcessedArticle";
 
 const s3 = new S3Client();
 const articleBucket =
@@ -14,22 +15,33 @@ export async function handler(request: any) {
   console.log("got request", request);
   const body = JSON.parse(request.Records[0].body);
   const backendArticle = BackendArticleSchema.parse(body);
-  const fetchArticleContentResult = await fetchArticleContent(backendArticle);
 
-  console.log("got article content", { fetchArticleContentResult });
+  // Check if the backend article already exists in the backend database
+  const backendArticleWithProcessedBits = await getProcessedArticle(
+    backendArticle
+  );
 
-  const tagsAndSummaryResults = await Promise.all([
-    makeArticleTags(fetchArticleContentResult),
-    makeArticleSummary(fetchArticleContentResult),
-  ]);
+  let finalResult: BackendArticle;
+  if (backendArticleWithProcessedBits) {
+    finalResult = backendArticleWithProcessedBits;
+  } else {
+    const fetchArticleContentResult = await fetchArticleContent(backendArticle);
 
-  console.log("got tags and summary results", { tagsAndSummaryResults });
+    console.log("got article content", { fetchArticleContentResult });
 
-  const finalResult = {
-    ...fetchArticleContentResult,
-    tags: tagsAndSummaryResults[0].tags,
-    summary: tagsAndSummaryResults[1].summary,
-  };
+    const tagsAndSummaryResults = await Promise.all([
+      makeArticleTags(fetchArticleContentResult),
+      makeArticleSummary(fetchArticleContentResult),
+    ]);
+
+    console.log("got tags and summary results", { tagsAndSummaryResults });
+
+    finalResult = {
+      ...fetchArticleContentResult,
+      tags: tagsAndSummaryResults[0].tags,
+      summary: tagsAndSummaryResults[1].summary,
+    };
+  }
 
   await commitArticleToDb(finalResult);
 
