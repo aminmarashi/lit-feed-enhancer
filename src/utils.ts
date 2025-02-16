@@ -1,3 +1,4 @@
+import { MongoClient } from "mongodb";
 import { BackendArticle, UserArticle } from "./types";
 
 export function requireEnv<T extends Record<string, string>>(
@@ -47,4 +48,13 @@ export function backendToUserArticle(
     }
   }
   return newArticle;
+}
+
+let mongoClient: MongoClient | undefined;
+export async function getMongoClient(mongoUrl: string) {
+  if (!mongoClient) {
+    mongoClient = new MongoClient(mongoUrl);
+    await mongoClient.connect();
+  }
+  return mongoClient;
 }

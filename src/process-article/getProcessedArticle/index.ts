@@ -1,5 +1,5 @@
 import { BackendArticle } from "@/types";
-import { requireEnv } from "@/utils";
+import { getMongoClient, requireEnv } from "@/utils";
 import { MongoClient } from "mongodb";
 
 export async function getProcessedArticle(fullDocument: BackendArticle) {
@@ -10,8 +10,7 @@ export async function getProcessedArticle(fullDocument: BackendArticle) {
       mongoUrl: "MONGO_URL",
     });
 
-  const mongoClient = new MongoClient(mongoUrl);
-  await mongoClient.connect();
+  const mongoClient = await getMongoClient(mongoUrl);
   const backendFeedDatabase = mongoClient.db(backendFeedDatabaseName);
   const backendArticles = backendFeedDatabase.collection(
     backendArticlesCollection

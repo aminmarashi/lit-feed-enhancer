@@ -1,5 +1,5 @@
 import { BackendArticle } from "@/types";
-import { requireEnv } from "@/utils";
+import { getMongoClient, requireEnv } from "@/utils";
 import { MongoClient } from "mongodb";
 
 export async function commitArticleToDb(fullDocument: BackendArticle) {
@@ -31,8 +31,7 @@ export async function commitArticleToDb(fullDocument: BackendArticle) {
     return;
   }
 
-  const mongoClient = new MongoClient(mongoUrl);
-  await mongoClient.connect();
+  const mongoClient = await getMongoClient(mongoUrl);
   const userFeedDatabase = mongoClient.db(userFeedDatabaseName);
   const backendFeedDatabase = mongoClient.db(backendFeedDatabaseName);
   const userArticles = userFeedDatabase.collection(userArticlesCollection);
