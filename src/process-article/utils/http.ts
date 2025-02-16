@@ -35,9 +35,6 @@ export async function callGpt({
     );
     const json = await response.json();
 
-    if (!json.result.success) {
-      return "";
-    }
     const data = json.result.response.trim();
     return data;
   } catch (error) {
