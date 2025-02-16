@@ -18,7 +18,7 @@ export async function fetchArticleContent(fullDocument: BackendArticle) {
   const content = await callGpt({
     systemPrompt: `Extract the essence of this article, remove any remainder from removing html tags and only keep the relevant content, keep the details as accurately as possible, do not summarize the text, do not add a single word from yourself. If you want to refuse my request, just say "no" without any extra words.`,
     content: rawContent,
-    backend: GptBackend.Gemini,
+    backend: GptBackend.Cf,
   });
 
   console.log("Extracted content", { content, rawContent });
