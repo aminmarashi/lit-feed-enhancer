@@ -1,11 +1,6 @@
 import { ArticleType } from "@/process-article/schemas/articles";
 import { load } from "cheerio";
-import {
-  gptApiKey,
-  gptRequestHeaders,
-  gptModelName,
-  callGpt,
-} from "../utils/http/cf";
+import { callGpt, GptBackend } from "../utils/http";
 
 export async function fetchArticleContent(fullDocument: ArticleType) {
   const { link: url } = fullDocument;
@@ -23,6 +18,7 @@ export async function fetchArticleContent(fullDocument: ArticleType) {
   const content = await callGpt({
     systemPrompt: `Extract the essence of this article, remove any remainder from removing html tags and only keep the relevant content, keep the details as accurately as possible, do not summarize the text, do not add a single word from yourself. If you want to refuse my request, just say "no" without any extra words.`,
     content: rawContent,
+    backend: GptBackend.Gemini,
   });
 
   console.log("Extracted content", { content, rawContent });

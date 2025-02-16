@@ -1,14 +1,5 @@
 import { ArticleType } from "@/process-article/schemas/articles";
-import {
-  gptApiKey,
-  gptRequestHeaders,
-  gptModelName,
-  callGpt,
-} from "@/process-article/utils/http/cf";
-import { toString } from "nlcst-to-string";
-import { retext } from "retext";
-import retextKeywords from "retext-keywords";
-import retextPos from "retext-pos";
+import { callGpt, GptBackend } from "@/process-article/utils/http";
 
 export async function makeArticleTags(fullDocument: ArticleType) {
   const { link: url, textContent: content, title } = fullDocument;
@@ -22,6 +13,7 @@ export async function makeArticleTags(fullDocument: ArticleType) {
   const response = await callGpt({
     systemPrompt: `The following is an article title followed by an article content, return a list of relevant tags for the article. Do not add a single word from yourself. If the tags are not related to the article title: ${title}, reply with 'Done'`,
     content,
+    backend: GptBackend.Cf,
   });
 
   const tags = response

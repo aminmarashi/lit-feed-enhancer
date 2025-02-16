@@ -1,10 +1,5 @@
 import { ArticleType } from "@/process-article/schemas/articles";
-import {
-  gptApiKey,
-  gptRequestHeaders,
-  gptModelName,
-  callGpt,
-} from "@/process-article/utils/http/cf";
+import { callGpt, GptBackend } from "@/process-article/utils/http";
 
 export async function makeArticleSummary(fullDocument: ArticleType) {
   const { link: url, textContent: content, title } = fullDocument;
@@ -18,6 +13,7 @@ export async function makeArticleSummary(fullDocument: ArticleType) {
   const summary = await callGpt({
     systemPrompt: `The following is an article title followed by an article content, return an extensive summary of the article that keeps the essence of the article while remaining as short as possible. Do not add a single word from yourself. If the summary is not related to the article title: ${title}, reply with 'Done'`,
     content,
+    backend: GptBackend.Cf,
   });
 
   if (!summary.trim()) {
