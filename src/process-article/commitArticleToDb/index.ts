@@ -17,6 +17,20 @@ export async function commitArticleToDb(fullDocument: BackendArticle) {
     mongoUrl: "MONGO_URL",
   });
 
+  if (
+    !fullDocument.textContent &&
+    !fullDocument.summary &&
+    !fullDocument.tags
+  ) {
+    console.warn(
+      "No processing done on article to be saved, skipping DB update",
+      {
+        fullDocument,
+      }
+    );
+    return;
+  }
+
   const mongoClient = new MongoClient(mongoUrl);
   await mongoClient.connect();
   const userFeedDatabase = mongoClient.db(userFeedDatabaseName);
