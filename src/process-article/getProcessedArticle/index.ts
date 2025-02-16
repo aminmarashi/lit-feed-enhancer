@@ -1,5 +1,5 @@
 import { BackendArticle } from "@/types";
-import { backendToUserArticle, requireEnv } from "@/utils";
+import { requireEnv } from "@/utils";
 import { MongoClient } from "mongodb";
 
 export async function getProcessedArticle(fullDocument: BackendArticle) {
@@ -19,6 +19,7 @@ export async function getProcessedArticle(fullDocument: BackendArticle) {
 
   const existingArticle = await backendArticles.findOne({
     link: fullDocument.link,
+    textContent: { $exists: true },
     summary: { $exists: true },
     tags: { $exists: true },
   });

@@ -42,6 +42,7 @@ export async function commitArticleToDb(fullDocument: BackendArticle) {
 
   const updatedBackendArticles = await backendArticles.updateOne(
     {
+      feedUrl: fullDocument.feedUrl,
       link: fullDocument.link,
     },
     {
@@ -59,11 +60,11 @@ export async function commitArticleToDb(fullDocument: BackendArticle) {
   });
 
   /**
-   * This will update any user articles with the same link as the backend article regardless of their feed
    * It could be that some of the newly created user articles are missed to be updated due to a race condition with inserting user articles and this event
    */
   const updatedArticles = await userArticles.updateMany(
     {
+      feedUrl: fullDocument.feedUrl,
       href: fullDocument.link,
     },
     {
@@ -77,6 +78,5 @@ export async function commitArticleToDb(fullDocument: BackendArticle) {
 
   console.log("Updated user articles processed data", {
     updatedArticles,
-    userArticle,
   });
 }
