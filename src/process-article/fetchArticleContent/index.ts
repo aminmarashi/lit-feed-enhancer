@@ -13,9 +13,7 @@ export async function fetchArticleContent(fullDocument: BackendArticle) {
     if (
       !(
         contentType &&
-        ["text/html", "application/xhtml+xml", "text/plain"].includes(
-          contentType
-        )
+        (contentType.includes("text") || contentType.includes("html"))
       )
     ) {
       console.warn("Invalid content type", { url, contentType });
