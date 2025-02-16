@@ -25,7 +25,6 @@ export function backendToUserArticle(
   backendArticle: BackendArticle
 ): Omit<UserArticle, "feedId" | "feedName" | "userId" | "synchedAt"> {
   return {
-    _id: backendArticle._id,
     feedUrl: backendArticle.feedUrl,
     title: backendArticle.title,
     summary: backendArticle.summary,

@@ -44,8 +44,39 @@ export async function handler(request: any) {
   console.log("saved event to S3", { s3Key, fullDocument, operationType });
 
   if (collectionName === "articles" && operationType === "update") {
+    if (!(fullDocument.title && fullDocument.summary && fullDocument.tags)) {
+      console.log(
+        "Skipping article training and scoring as article is missing summary, title or tags"
+      );
+      return;
+    }
+
+    if (
+      fullDocument.isSaved ||
+      fullDocument.isLiked === true ||
+      fullDocument.isLiked === false
+    ) {
+      console.log(
+        `Pushing article training message to queue: ${trainLikedArticlesQueueUrl}`
+      );
+      await sqs.send(
+        new SendMessageCommand({
+          QueueUrl: trainLikedArticlesQueueUrl,
+          MessageBody: JSON.stringify(fullDocument),
+        })
+      );
+      console.log(
+        `Pushed article training message to queue: ${trainLikedArticlesQueueUrl}`
+      );
+      return;
+    }
+    if (fullDocument.score) {
+      console.log("Article already scored, skipping scoring");
+      return;
+    }
+
     console.log(
-      `Pushing update article message to queue: ${updateArticleScoreQueueUrl}`
+      `Pushing update article score message to queue: ${updateArticleScoreQueueUrl}`
     );
     await sqs.send(
       new SendMessageCommand({
@@ -54,28 +85,7 @@ export async function handler(request: any) {
       })
     );
     console.log(
-      `Pushed update article message to queue: ${updateArticleScoreQueueUrl}`
-    );
-  }
-
-  if (
-    collectionName === "articles" &&
-    operationType === "update" &&
-    (fullDocument.isSaved ||
-      fullDocument.isLiked === true ||
-      fullDocument.isLiked === false)
-  ) {
-    console.log(
-      `Pushing article training message to queue: ${trainLikedArticlesQueueUrl}`
-    );
-    await sqs.send(
-      new SendMessageCommand({
-        QueueUrl: trainLikedArticlesQueueUrl,
-        MessageBody: JSON.stringify(fullDocument),
-      })
-    );
-    console.log(
-      `Pushed article training message to queue: ${trainLikedArticlesQueueUrl}`
+      `Pushed update article score message to queue: ${updateArticleScoreQueueUrl}`
     );
   }
 }

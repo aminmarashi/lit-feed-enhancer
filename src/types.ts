@@ -1,7 +1,7 @@
 import { z } from "zod";
 import { ObjectId } from "mongodb";
 
-const objectIdSchema = z.instanceof(ObjectId);
+const objectIdSchema = z.instanceof(ObjectId).optional();
 
 export const UserFeedSchema = z.object({
   _id: objectIdSchema,
@@ -63,21 +63,6 @@ export const BackendArticleSchema = z.object({
   _id: objectIdSchema,
   feedUrl: z.string(),
   title: z.string(),
-  link: z.string(),
-  content: z.string(),
-  createdAt: z.date(),
-  updatedAt: z.date(),
-  pubDate: z.date(),
-  image: z.string().optional(),
-  duration: z.string().optional(),
-  summary: z.string().optional(),
-  textContent: z.string().optional(),
-  tags: z.array(z.string()).optional(),
-});
-
-export const BackendArticleEventSchema = z.object({
-  _id: z.string(),
-  feedUrl: z.string(),
   link: z.string(),
   content: z.string(),
   createdAt: z.coerce.date(),

@@ -40,12 +40,20 @@ export async function commitArticleToDb(fullDocument: BackendArticle) {
     }
   );
 
-  console.log("updated articles", { updatedBackendArticles });
+  console.log("Updated backend articles", {
+    updatedBackendArticles,
+    backendArticles,
+  });
 
-  const userArticle = UserArticleSchema.parse({
+  /**
+   * This has a race condition with user articles being inserted
+   * Basically we are not 100% sure a user article is created at this point
+   * Needs refactoring of article fetching to ensure user articles are created before this point
+   */
+  const userArticle = {
     ...backendToUserArticle(fullDocument),
     synchedAt: new Date(),
-  });
+  };
   const updatedArticles = await userArticles.updateMany(
     {
       feedUrl: fullDocument.feedUrl,

@@ -1,6 +1,6 @@
+import { BackendArticle } from "@/types";
 import { load } from "cheerio";
 import { callGpt, GptBackend } from "../utils/http";
-import { BackendArticle, UserArticle } from "@/types";
 
 export async function fetchArticleContent(fullDocument: BackendArticle) {
   const { link: url } = fullDocument;

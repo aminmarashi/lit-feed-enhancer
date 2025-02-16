@@ -1,10 +1,5 @@
-import {
-  BackendArticle,
-  BackendArticleEventSchema,
-  BackendArticleSchema,
-} from "@/types";
+import { BackendArticle, BackendArticleSchema } from "@/types";
 import { PutObjectCommand, S3Client } from "@aws-sdk/client-s3";
-import { ObjectId } from "mongodb";
 import { commitArticleToDb } from "./commitArticleToDb";
 import { fetchArticleContent } from "./fetchArticleContent";
 import { makeArticleSummary } from "./makeArticleSummary";
@@ -18,11 +13,7 @@ const articleBucket =
 export async function handler(request: any) {
   console.log("got request", request);
   const body = JSON.parse(request.Records[0].body);
-  const fullDocument = BackendArticleEventSchema.parse(body);
-  const backendArticle = BackendArticleSchema.parse({
-    ...fullDocument,
-    _id: new ObjectId(fullDocument._id),
-  });
+  const backendArticle = BackendArticleSchema.parse(body);
   const fetchArticleContentResult = await fetchArticleContent(backendArticle);
 
   console.log("got article content", { fetchArticleContentResult });
@@ -34,17 +25,16 @@ export async function handler(request: any) {
 
   console.log("got tags and summary results", { tagsAndSummaryResults });
 
-  const finalResult = tagsAndSummaryResults.reduce<BackendArticle>(
-    (acc, result) => {
-      return { ...acc, ...result };
-    },
-    {} as BackendArticle
-  );
+  const finalResult = {
+    ...fetchArticleContentResult,
+    tags: tagsAndSummaryResults[0].tags,
+    summary: tagsAndSummaryResults[1].summary,
+  };
 
-  await commitArticleToDb(backendArticle);
+  await commitArticleToDb(finalResult);
 
-  const articleUrl = sanitizeUrlForS3Key(backendArticle.link);
-  const articleCreatedAt = new Date(backendArticle.createdAt);
+  const articleUrl = sanitizeUrlForS3Key(finalResult.link);
+  const articleCreatedAt = new Date(finalResult.createdAt);
   const year = articleCreatedAt.getFullYear();
   const month = articleCreatedAt.getMonth() + 1;
   const monthZeroPadded = month.toString().padStart(2, "0");
