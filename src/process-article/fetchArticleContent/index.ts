@@ -8,8 +8,20 @@ export async function fetchArticleContent(fullDocument: BackendArticle) {
 
   let htmlContent = "";
   try {
-    const articleResponse = await fetch(url);
-    htmlContent = await articleResponse.text();
+    const response = await fetch(url);
+    const contentType = response.headers.get("content-type");
+    if (
+      !(
+        contentType &&
+        ["text/html", "application/xhtml+xml", "text/plain"].includes(
+          contentType
+        )
+      )
+    ) {
+      console.warn("Invalid content type", { url, contentType });
+      return fullDocument;
+    }
+    htmlContent = await response.text();
     if (!htmlContent) {
       console.warn("No content found", { url });
       return fullDocument;
