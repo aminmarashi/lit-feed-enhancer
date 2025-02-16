@@ -24,7 +24,7 @@ export function requireEnv<T extends Record<string, string>>(
 export function backendToUserArticle(
   backendArticle: BackendArticle
 ): Omit<UserArticle, "feedId" | "feedName" | "userId" | "synchedAt"> {
-  return {
+  const newArticle = {
     feedUrl: backendArticle.feedUrl,
     title: backendArticle.title,
     summary: backendArticle.summary,
@@ -40,4 +40,11 @@ export function backendToUserArticle(
     content: backendArticle.content,
     tags: backendArticle.tags,
   };
+
+  for (const [key, value] of Object.entries(newArticle)) {
+    if (value === undefined) {
+      delete newArticle[key as never];
+    }
+  }
+  return newArticle;
 }
