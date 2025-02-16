@@ -17,6 +17,8 @@ pipeline_filename = 'complete_pipeline.joblib'
 lambda_tmp_dir = '/tmp'
 pipeline_full_filename = f'{lambda_tmp_dir}/{pipeline_filename}'
 
+mongo_client = MongoClient(mongo_url)
+
 def handler(event, context):
   article = json.loads(event.get('Records')[0].get('body'))
   print(f'Article: {article}')
@@ -80,20 +82,15 @@ def handler(event, context):
       result['like'] = probabilities[0][i]
   result['preferenceScore'] = result['like'] - result['dislike']
 
-  # Update article score in MongoDB
-  mongo_client = MongoClient(mongo_url)
-  try:
-    db = mongo_client[user_feed_database_name]
-    articles_collection = db[user_articles_collection]
+  db = mongo_client[user_feed_database_name]
+  articles_collection = db[user_articles_collection]
 
-    update_result = articles_collection.update_one(
-      { '_id': ObjectId(article['_id']) },
-      { '$set': { 'score': result } }
-    )
+  update_result = articles_collection.update_one(
+    { '_id': ObjectId(article['_id']) },
+    { '$set': { 'score': result } }
+  )
 
-    print("Article score updated", { 'article': article, 'score': result, 'updateResult': update_result })
-  finally:
-    mongo_client.close()
+  print("Article score updated", { 'article': article, 'score': result, 'updateResult': update_result })
 
   return {
     'statusCode': 200,
