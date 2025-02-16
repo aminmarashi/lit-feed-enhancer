@@ -7,7 +7,17 @@ export async function fetchArticleContent(fullDocument: BackendArticle) {
   console.info("Running fetchArticleContent action", { url });
   const articleResponse = await fetch(url);
 
-  const htmlContent = await articleResponse.text();
+  let htmlContent = "";
+  try {
+    htmlContent = await articleResponse.text();
+    if (!htmlContent) {
+      console.warn("No content found", { url });
+      return fullDocument;
+    }
+  } catch (error) {
+    console.error("Failed to fetch article content", { url, error });
+    return fullDocument;
+  }
 
   console.info("Fetched article content", { url });
 
