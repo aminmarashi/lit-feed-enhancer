@@ -1,4 +1,4 @@
-const gptApiKey = "FAKE_CLOUDFLARE_API_TOKEN";
+const gptApiKey = process.env.CF_API_KEY;
 const gptModelName = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
 
 const gptRequestHeaders = {

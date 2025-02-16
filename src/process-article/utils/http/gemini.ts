@@ -1,4 +1,4 @@
-const gptApiKey = "FAKE_GEMINI_API_KEY";
+const gptApiKey = process.env.GEMINI_API_KEY;
 const gptModelName = "gemini-2.0-flash-lite-preview-02-05";
 
 const gptRequestHeaders = {

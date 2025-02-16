@@ -256,6 +256,8 @@ const processArticle = new aws.lambda.Function(
     environment: {
       variables: {
         ARTICLE_BUCKET: articleBucket.bucket,
+        CF_API_KEY: config.requireSecret("cfApiKey"),
+        GEMINI_API_KEY: config.requireSecret("geminiApiKey"),
       },
     },
     architectures: ["x86_64"],

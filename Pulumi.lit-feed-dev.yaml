@@ -1,5 +1,9 @@
 config:
   aws:profile: dev
+  lit-feed-enhancer:cfApiKey:
+    secure: AAABAAi4/koV/aAG85pmSN80JLY7EFhZfiArl/VVViPCT16sb2ygiNCvPNO86PMumpnGhP0TLNN26VP67JiHmrKIxigNAZ15
+  lit-feed-enhancer:geminiApiKey:
+    secure: AAABAEPf4SNIbXA3N0fZyrk+grHUu4kHox/r1U3cPlMXqPJMPv4seD+jcfAC6dr5F2OQn/ibR/GoKb4blT71OaOkWKat4tc=
   lit-feed-enhancer:mongoUrl:
     secure: AAABAAVBRLI1ME8tNK4GUBa3Lxzi2TCY7IT2np7ItPTlTTfUsFH486RV5sFJwy2hmjqfDk9CwWyBFj51SBevD8fsD8P9+PFUMzplPE7Cd1/Q/SIDbwReRJV89zvUnTQDZPazUXfWlV1L9TqW5DuHldoXsE3VwX0mvYzn7iYlA+lp0G7t
   lit-feed-enhancer:userArticlesCollection: articles
