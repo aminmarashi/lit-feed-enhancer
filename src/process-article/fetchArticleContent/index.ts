@@ -26,6 +26,8 @@ export async function fetchArticleContent(fullDocument: ArticleType) {
     content: rawContent,
   });
 
+  console.log("Extracted content", { content, rawContent });
+
   if (!content || content.length < 100) {
     console.warn("No content found", { url });
     return fullDocument;
