@@ -1,8 +1,9 @@
-const gptApiKey = "FAKE_GEMINI_API_KEY";
-const gptModelName = "gemini-2.0-flash-lite-preview-02-05";
+const gptApiKey = "FAKE_CLOUDFLARE_API_TOKEN";
+const gptModelName = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
 
 const gptRequestHeaders = {
   "Content-Type": "application/json",
+  Authorization: `Bearer ${gptApiKey}`,
 };
 
 export async function callGpt({
@@ -14,33 +15,27 @@ export async function callGpt({
 }) {
   try {
     const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${gptModelName}:generateContent?key=${gptApiKey}`,
+      `https://api.cloudflare.com/client/v4/accounts/6bd55f31cfc0f753bb4a09b63d5ccfb4/ai/run/${gptModelName}`,
       {
         method: "POST",
         body: JSON.stringify({
-          system_instruction: {
-            parts: {
-              text: systemPrompt,
+          messages: [
+            {
+              role: "system",
+              content: systemPrompt,
             },
-          },
-          contents: {
-            parts: {
-              text: content,
+            {
+              role: "user",
+              content,
             },
-          },
+          ],
         }),
         headers: gptRequestHeaders,
       }
     );
     const json = await response.json();
 
-    if (json.error) {
-      console.error("Error requesting data from chat API:", {
-        error: json.error,
-      });
-      return "";
-    }
-    const data = json.candidates[0].content.parts[0].text.trim();
+    const data = json.result.response.trim();
     return data;
   } catch (error) {
     console.error("Error requesting data from chat API:", {
