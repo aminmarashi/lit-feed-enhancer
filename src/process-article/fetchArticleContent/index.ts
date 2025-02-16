@@ -35,13 +35,15 @@ export async function fetchArticleContent(fullDocument: BackendArticle) {
     htmlContent,
   });
 
+  console.info("Removed HTML tags", { url, rawContent });
+
   const content = await callGpt({
     systemPrompt: `Extract the essence of this article, remove any remainder from removing html tags and only keep the relevant content, keep the details as accurately as possible, do not summarize the text, do not add a single word from yourself. If you want to refuse my request, just say "no" without any extra words.`,
     content: rawContent,
     backend: GptBackend.Cf,
   });
 
-  console.log("Extracted content", { content, rawContent });
+  console.log("Extracted content", { content });
 
   if (!content || content.length < 100) {
     console.warn("No content found", { url });
