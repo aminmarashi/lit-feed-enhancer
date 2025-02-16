@@ -255,6 +255,18 @@ const lambdaExectutionRole = new aws.iam.Role(
   }
 );
 
+const processArticleDLQ = new aws.sqs.Queue("process_article_dlq", {
+  visibilityTimeoutSeconds: 900, // 15 minutes
+});
+
+const processArticleQueue = new aws.sqs.Queue("process_article_queue", {
+  visibilityTimeoutSeconds: 900, // 15 minutes
+  redrivePolicy: pulumi.interpolate`{
+      "deadLetterTargetArn": "${processArticleDLQ.arn}",
+      "maxReceiveCount": 5
+    }`,
+});
+
 const processArticle = new aws.lambda.Function(
   "process_article",
   {
@@ -263,6 +275,13 @@ const processArticle = new aws.lambda.Function(
         ARTICLE_BUCKET: articleBucket.bucket,
         CF_API_KEY: config.requireSecret("cfApiKey"),
         GEMINI_API_KEY: config.requireSecret("geminiApiKey"),
+        MONGO_URL: config.requireSecret("mongoUrl"),
+        USER_FEED_DATABASE_NAME: config.require("userFeedDatabaseName"),
+        USER_ARTICLES_COLLECTION: config.require("userArticlesCollection"),
+        BACKEND_FEED_DATABASE_NAME: config.require("backendFeedDatabaseName"),
+        BACKEND_ARTICLES_COLLECTION: config.require(
+          "backendArticlesCollection"
+        ),
       },
     },
     architectures: ["x86_64"],
@@ -291,6 +310,19 @@ const processArticle = new aws.lambda.Function(
     protect: true,
   }
 );
+
+const eventSourceMappingProcessArticle = new aws.lambda.EventSourceMapping(
+  "event_source_mapping_process_article",
+  {
+    batchSize: 1,
+    eventSourceArn: processArticleQueue.arn,
+    functionName: processArticle.arn,
+    scalingConfig: {
+      maximumConcurrency: 2,
+    },
+  }
+);
+
 const syncFeedDatabaseLambdaLogGroup = new aws.cloudwatch.LogGroup(
   "sync_feed_database_lambda_log_group",
   {

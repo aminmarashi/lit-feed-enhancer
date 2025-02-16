@@ -1,7 +1,7 @@
-import { ArticleType } from "@/process-article/schemas/articles";
 import { callGpt, GptBackend } from "@/process-article/utils/http";
+import { BackendArticle } from "@/types";
 
-export async function makeArticleSummary(fullDocument: ArticleType) {
+export async function makeArticleSummary(fullDocument: BackendArticle) {
   const { link: url, textContent: content, title } = fullDocument;
   if (!content) {
     console.warn("No content found, skipping summary creation", { url });

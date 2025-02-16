@@ -9,3 +9,6 @@ config:
   lit-feed-enhancer:userArticlesCollection: articles
   lit-feed-enhancer:userFeedDatabaseName: feed
   lit-feed-enhancer:userFeedsCollection: feeds
+  lit-feed-enhancer:backendFeedDatabaseName: feed-backend
+  lit-feed-enhancer:backendFeedsCollection: feeds
+  lit-feed-enhancer:backendArticlesCollection: articles

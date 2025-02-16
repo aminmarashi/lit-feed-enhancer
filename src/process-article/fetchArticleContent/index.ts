@@ -1,8 +1,8 @@
-import { ArticleType } from "@/process-article/schemas/articles";
 import { load } from "cheerio";
 import { callGpt, GptBackend } from "../utils/http";
+import { BackendArticle, UserArticle } from "@/types";
 
-export async function fetchArticleContent(fullDocument: ArticleType) {
+export async function fetchArticleContent(fullDocument: BackendArticle) {
   const { link: url } = fullDocument;
   console.info("Running fetchArticleContent action", { url });
   const articleResponse = await fetch(url);

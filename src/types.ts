@@ -75,6 +75,21 @@ export const BackendArticleSchema = z.object({
   tags: z.array(z.string()).optional(),
 });
 
+export const BackendArticleEventSchema = z.object({
+  _id: z.string(),
+  feedUrl: z.string(),
+  link: z.string(),
+  content: z.string(),
+  createdAt: z.coerce.date(),
+  updatedAt: z.coerce.date(),
+  pubDate: z.coerce.date(),
+  image: z.string().optional(),
+  duration: z.string().optional(),
+  summary: z.string().optional(),
+  textContent: z.string().optional(),
+  tags: z.array(z.string()).optional(),
+});
+
 export const UserSchema = z.object({
   _id: objectIdSchema,
   email: z.string(),

@@ -1,3 +1,5 @@
+import { BackendArticle, UserArticle } from "./types";
+
 export function requireEnv<T extends Record<string, string>>(
   config: T
 ): { [K in keyof T]: string } {
@@ -17,4 +19,26 @@ export function requireEnv<T extends Record<string, string>>(
   }
 
   return result;
+}
+
+export function backendToUserArticle(
+  backendArticle: BackendArticle
+): Omit<UserArticle, "feedId" | "feedName" | "userId" | "synchedAt"> {
+  return {
+    _id: backendArticle._id,
+    feedUrl: backendArticle.feedUrl,
+    title: backendArticle.title,
+    summary: backendArticle.summary,
+    href: backendArticle.link,
+    isRead: false,
+    isSaved: false,
+    isLiked: null,
+    createdAt: backendArticle.createdAt,
+    updatedAt: backendArticle.updatedAt,
+    date: backendArticle.pubDate,
+    image: backendArticle.image,
+    duration: backendArticle.duration,
+    content: backendArticle.content,
+    tags: backendArticle.tags,
+  };
 }
