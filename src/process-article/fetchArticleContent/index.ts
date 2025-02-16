@@ -8,7 +8,7 @@ export async function fetchArticleContent(fullDocument: BackendArticle) {
 
   let htmlContent = "";
   try {
-    const response = await fetch(url);
+    const response = await fetch(url, { signal: AbortSignal.timeout(5000) });
     const contentType = response.headers.get("content-type");
     if (
       !(
