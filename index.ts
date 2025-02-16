@@ -423,6 +423,9 @@ const eventSourceMappingTrainLikedArticles = new aws.lambda.EventSourceMapping(
     batchSize: 1,
     eventSourceArn: trainLikedArticlesQueue.arn,
     functionName: trainLikedArticles.arn,
+    scalingConfig: {
+      maximumConcurrency: 2,
+    },
   }
 );
 
@@ -495,6 +498,9 @@ const eventSourceMappingUpdateArticle = new aws.lambda.EventSourceMapping(
     batchSize: 1,
     eventSourceArn: updateArticleScoreQueue.arn,
     functionName: updateArticleScore.arn,
+    scalingConfig: {
+      maximumConcurrency: 2,
+    },
   }
 );
 
