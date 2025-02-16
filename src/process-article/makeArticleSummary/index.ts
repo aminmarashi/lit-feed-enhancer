@@ -4,7 +4,7 @@ import {
   gptRequestHeaders,
   gptModelName,
   callGpt,
-} from "@/process-article/utils/http";
+} from "@/process-article/utils/http/cf";
 
 export async function makeArticleSummary(fullDocument: ArticleType) {
   const { link: url, textContent: content, title } = fullDocument;

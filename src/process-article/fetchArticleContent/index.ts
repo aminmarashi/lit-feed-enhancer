@@ -5,7 +5,7 @@ import {
   gptRequestHeaders,
   gptModelName,
   callGpt,
-} from "../utils/http";
+} from "../utils/http/cf";
 
 export async function fetchArticleContent(fullDocument: ArticleType) {
   const { link: url } = fullDocument;

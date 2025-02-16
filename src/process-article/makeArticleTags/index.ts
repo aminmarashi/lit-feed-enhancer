@@ -4,7 +4,7 @@ import {
   gptRequestHeaders,
   gptModelName,
   callGpt,
-} from "@/process-article/utils/http";
+} from "@/process-article/utils/http/cf";
 import { toString } from "nlcst-to-string";
 import { retext } from "retext";
 import retextKeywords from "retext-keywords";
