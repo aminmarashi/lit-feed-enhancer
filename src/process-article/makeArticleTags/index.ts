@@ -1,8 +1,9 @@
 import { ArticleType } from "@/process-article/schemas/articles";
 import {
-  geminiApiKey,
+  gptApiKey,
   gptRequestHeaders,
-  geminiModelName,
+  gptModelName,
+  callGpt,
 } from "@/process-article/utils/http";
 import { toString } from "nlcst-to-string";
 import { retext } from "retext";
@@ -18,10 +19,14 @@ export async function makeArticleTags(fullDocument: ArticleType) {
 
   console.info("Running makeArticleTags action", { url, content });
 
-  const tags = await requestGPTTags({
+  const response = await callGpt({
+    systemPrompt: `The following is an article title followed by an article content, return a list of relevant tags for the article. Do not add a single word from yourself. If the tags are not related to the article title: ${title}, reply with 'Done'`,
     content,
-    title,
   });
+
+  const tags = response
+    .split(",")
+    .map((tag: string) => tag.replace("\n", "").replace("\\n", "").trim());
 
   if (!tags.length) {
     console.warn("No tags found", { url });
@@ -34,51 +39,4 @@ export async function makeArticleTags(fullDocument: ArticleType) {
     ...fullDocument,
     tags,
   };
-}
-
-async function requestGPTTags({
-  content,
-  title,
-}: {
-  content: string;
-  title: string;
-}): Promise<string[]> {
-  try {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${geminiModelName}:generateContent?key=` +
-        geminiApiKey,
-      {
-        method: "POST",
-        body: JSON.stringify({
-          system_instruction: {
-            parts: [
-              {
-                text: `The following is an article title followed by an article content, return a list of relevant tags for the article. Do not add a single word from yourself. If the tags are not related to the article title: ${title}, reply with 'Done'`,
-              },
-            ],
-          },
-          contents: {
-            role: "user",
-            parts: [
-              {
-                text: content,
-              },
-            ],
-          },
-        }),
-        headers: gptRequestHeaders,
-      }
-    );
-    const json = await response.json();
-
-    const data = json.candidates[0].content.parts[0].text.trim();
-    return data
-      .split(",")
-      .map((tag: string) => tag.replace("\n", "").replace("\\n", "").trim());
-  } catch (error) {
-    console.error("Error requesting data from chat API:", {
-      error: error as Error,
-    });
-    return [];
-  }
 }

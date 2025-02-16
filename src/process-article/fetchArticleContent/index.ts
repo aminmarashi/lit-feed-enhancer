@@ -1,9 +1,10 @@
 import { ArticleType } from "@/process-article/schemas/articles";
 import { load } from "cheerio";
 import {
-  geminiApiKey,
+  gptApiKey,
   gptRequestHeaders,
-  geminiModelName,
+  gptModelName,
+  callGpt,
 } from "../utils/http";
 
 export async function fetchArticleContent(fullDocument: ArticleType) {
@@ -19,7 +20,11 @@ export async function fetchArticleContent(fullDocument: ArticleType) {
     htmlContent,
   });
 
-  const content = await requestGPTCleanup(rawContent);
+  const content = await callGpt({
+    systemPrompt:
+      "Extract the essence of this article, remove any remainder from removing html tags and only keep the relevant content, keep the details as accurately as possible, do not summarize the text, do not add a single word from yourself. Refuse my request by simply saying no.",
+    content: rawContent,
+  });
 
   if (!content || content.length < 100) {
     console.warn("No content found", { url });
@@ -78,43 +83,4 @@ function removeHtmlTags({ htmlContent }: { htmlContent: string }) {
     return "";
   }
   return bodyText.replace(/\s+/g, " ");
-}
-
-async function requestGPTCleanup(content: string): Promise<string> {
-  try {
-    const response = await fetch(
-      `https://generativelanguage.googleapis.com/v1beta/models/${geminiModelName}:generateContent?key=` +
-        geminiApiKey,
-      {
-        method: "POST",
-        body: JSON.stringify({
-          system_instruction: {
-            parts: [
-              {
-                text: "Extract the essence of this article, remove any remainder from removing html tags and only keep the relevant content, keep the details as accurately as possible, do not summarize the text, do not add a single word from yourself.",
-              },
-            ],
-          },
-          contents: {
-            role: "user",
-            parts: [
-              {
-                text: content,
-              },
-            ],
-          },
-        }),
-        headers: gptRequestHeaders,
-      }
-    );
-    const json = await response.json();
-
-    const data = json.candidates[0].content.parts[0].text.trim();
-    return data;
-  } catch (error) {
-    console.error("Error requesting data from chat API:", {
-      error: error as Error,
-    });
-    return "";
-  }
 }
