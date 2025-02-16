@@ -5,10 +5,10 @@ import { callGpt, GptBackend } from "../utils/http";
 export async function fetchArticleContent(fullDocument: BackendArticle) {
   const { link: url } = fullDocument;
   console.info("Running fetchArticleContent action", { url });
-  const articleResponse = await fetch(url);
 
   let htmlContent = "";
   try {
+    const articleResponse = await fetch(url);
     htmlContent = await articleResponse.text();
     if (!htmlContent) {
       console.warn("No content found", { url });
