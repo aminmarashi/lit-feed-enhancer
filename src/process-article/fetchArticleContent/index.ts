@@ -1,6 +1,10 @@
 import { ArticleType } from "@/process-article/schemas/articles";
 import { load } from "cheerio";
-import { chatGPTHeaders } from "../utils/http";
+import {
+  geminiApiKey,
+  gptRequestHeaders,
+  geminiModelName,
+} from "../utils/http";
 
 export async function fetchArticleContent(fullDocument: ArticleType) {
   const { link: url } = fullDocument;
@@ -78,30 +82,37 @@ function removeHtmlTags({ htmlContent }: { htmlContent: string }) {
 
 async function requestGPTCleanup(content: string): Promise<string> {
   try {
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      body: JSON.stringify({
-        model: "gpt-4o-mini",
-        messages: [
-          {
-            role: "system",
-            content:
-              "Extract the essence of this article, remove any remainder from removing html tags and only keep the relevant content, keep the details as accurately as possible, do not summarize the text, do not add a single word from yourself.",
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${geminiModelName}:generateContent?key=` +
+        geminiApiKey,
+      {
+        method: "POST",
+        body: JSON.stringify({
+          system_instruction: {
+            parts: [
+              {
+                text: "Extract the essence of this article, remove any remainder from removing html tags and only keep the relevant content, keep the details as accurately as possible, do not summarize the text, do not add a single word from yourself.",
+              },
+            ],
           },
-          {
+          contents: {
             role: "user",
-            content: content,
+            parts: [
+              {
+                text: content,
+              },
+            ],
           },
-        ],
-      }),
-      headers: chatGPTHeaders,
-    });
+        }),
+        headers: gptRequestHeaders,
+      }
+    );
     const json = await response.json();
 
-    const data = json.choices[0].message.content.trim();
+    const data = json.candidates[0].content.parts[0].text.trim();
     return data;
   } catch (error) {
-    console.error("Error requesting data from OpenAI:", {
+    console.error("Error requesting data from chat API:", {
       error: error as Error,
     });
     return "";

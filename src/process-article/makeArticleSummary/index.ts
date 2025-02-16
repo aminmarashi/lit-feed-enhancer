@@ -1,5 +1,9 @@
 import { ArticleType } from "@/process-article/schemas/articles";
-import { chatGPTHeaders } from "@/process-article/utils/http";
+import {
+  geminiApiKey,
+  gptRequestHeaders,
+  geminiModelName,
+} from "@/process-article/utils/http";
 
 export async function makeArticleSummary(fullDocument: ArticleType) {
   const { link: url, textContent: content, title } = fullDocument;
@@ -41,33 +45,37 @@ async function requestGPTSummary({
   title: string;
 }): Promise<string> {
   try {
-    const response = await fetch("https://api.openai.com/v1/chat/completions", {
-      method: "POST",
-      body: JSON.stringify({
-        model: "gpt-4o-mini",
-        messages: [
-          {
-            role: "system",
-            content: `The following is an article title followed by an article content, return an extensive summary of the article that keeps the essence of the article while remaining as short as possible. Do not add a single word from yourself. If the summary is not related to the article title: ${title}, reply with 'Done'`,
+    const response = await fetch(
+      `https://generativelanguage.googleapis.com/v1beta/models/${geminiModelName}:generateContent?key=` +
+        geminiApiKey,
+      {
+        method: "POST",
+        body: JSON.stringify({
+          system_instruction: {
+            parts: [
+              {
+                text: `The following is an article title followed by an article content, return an extensive summary of the article that keeps the essence of the article while remaining as short as possible. Do not add a single word from yourself. If the summary is not related to the article title: ${title}, reply with 'Done'`,
+              },
+            ],
           },
-          {
+          contents: {
             role: "user",
-            content: title,
+            parts: [
+              {
+                text: content,
+              },
+            ],
           },
-          {
-            role: "user",
-            content: content,
-          },
-        ],
-      }),
-      headers: chatGPTHeaders,
-    });
+        }),
+        headers: gptRequestHeaders,
+      }
+    );
     const json = await response.json();
 
-    const data = json.choices[0].message.content.trim();
+    const data = json.candidates[0].content.parts[0].text.trim();
     return data;
   } catch (error) {
-    console.error("Error requesting data from OpenAI:", {
+    console.error("Error requesting data from chat API:", {
       error: error as Error,
     });
     return "";
