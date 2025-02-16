@@ -25,7 +25,8 @@ export async function handler(request: any) {
   const timestamp = new Date().getTime();
   const eventId = Math.floor(Math.random() * 1000000);
 
-  const { operationType, fullDocument } = request;
+  const body = JSON.parse(request.Records[0].body);
+  const { operationType, fullDocument } = body;
 
   const collectionName = "feedUrl" in fullDocument ? "articles" : "feeds";
 

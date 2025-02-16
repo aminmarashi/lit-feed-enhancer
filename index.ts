@@ -28,6 +28,11 @@ const lambdaRunUserPolicy = new aws.iam.UserPolicy("lambda_run_user_policy", {
         Effect: "Allow",
         Resource: "*",
       },
+      {
+        Action: ["sqs:*"],
+        Effect: "Allow",
+        Resource: "*",
+      },
     ],
   }),
 });
@@ -504,6 +509,18 @@ const eventSourceMappingUpdateArticle = new aws.lambda.EventSourceMapping(
   }
 );
 
+const syncFeedDatabaseDLQ = new aws.sqs.Queue("sync_feed_database_dlq", {
+  visibilityTimeoutSeconds: 900, // 15 minutes
+});
+
+const syncFeedDatabaseQueue = new aws.sqs.Queue("sync_feed_database_queue", {
+  visibilityTimeoutSeconds: 900, // 15 minutes
+  redrivePolicy: pulumi.interpolate`{
+      "deadLetterTargetArn": "${syncFeedDatabaseDLQ.arn}",
+      "maxReceiveCount": 5
+    }`,
+});
+
 const syncFeedDatabase = new aws.lambda.Function("sync_feed_database", {
   environment: {
     variables: {
@@ -533,6 +550,18 @@ const syncFeedDatabase = new aws.lambda.Function("sync_feed_database", {
     ".": new pulumi.asset.FileArchive("./dist/sync-feed-database"),
   }),
 });
+
+const eventSourceMappingSyncFeedDatabase = new aws.lambda.EventSourceMapping(
+  "event_source_mapping_sync_feed_database",
+  {
+    batchSize: 1,
+    eventSourceArn: syncFeedDatabaseQueue.arn,
+    functionName: syncFeedDatabase.arn,
+    scalingConfig: {
+      maximumConcurrency: 2,
+    },
+  }
+);
 
 const mongoDumpBucket = new aws.s3.BucketV2(
   "mongo_dump_bucket",
