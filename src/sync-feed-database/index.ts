@@ -51,11 +51,15 @@ export async function handler(request: any) {
       return;
     }
 
-    if (
+    const isArticleLikedOrDisliked =
       fullDocument.isSaved ||
       fullDocument.isLiked === true ||
-      fullDocument.isLiked === false
-    ) {
+      fullDocument.isLiked === false;
+
+    const isArticleReadManually =
+      fullDocument.isRead && fullDocument.action !== "markAllAsRead";
+
+    if (isArticleLikedOrDisliked || isArticleReadManually) {
       console.log(
         `Pushing article training message to queue: ${trainLikedArticlesQueueUrl}`
       );
