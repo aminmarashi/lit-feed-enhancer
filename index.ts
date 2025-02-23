@@ -10,9 +10,23 @@ import * as awsx from "@pulumi/awsx";
 const config = new pulumi.Config();
 const stack = pulumi.getStack().match(/dev/) ? "dev" : "prod";
 
+function getResourceTags(
+  resourceType: string,
+  resourceName: string
+): Record<string, string> {
+  return {
+    Environment: stack,
+    Project: "LitFeedEnhancer",
+    [resourceType]: resourceName,
+  };
+}
+
 const lambdaRunUser = new aws.iam.User(
   "lambda_run_user",
-  { name: "lambda-run-user" },
+  {
+    name: "lambda-run-user",
+    tags: getResourceTags("IAMUser", "lambda-run-user"),
+  },
   {
     protect: true,
   }
@@ -50,6 +64,7 @@ const feedEventsBucket = new aws.s3.BucketV2(
   "feed_events_bucket",
   {
     bucket: `lit-feed-${stack}-feed-events-bucket`,
+    tags: getResourceTags("S3Bucket", "feed-events-bucket"),
     lifecycleRules: [
       {
         abortIncompleteMultipartUploadDays: 0,
@@ -105,6 +120,7 @@ const articleBucket = new aws.s3.BucketV2(
   "article_bucket",
   {
     bucket: `lit-feed-${stack}-article-bucket`,
+    tags: getResourceTags("S3Bucket", "article-bucket"),
     lifecycleRules: [
       {
         abortIncompleteMultipartUploadDays: 0,
@@ -249,6 +265,7 @@ const lambdaExectutionRole = new aws.iam.Role(
       "arn:aws:iam::aws:policy/AmazonSSMReadOnlyAccess",
     ],
     name: "lambda-execution-role",
+    tags: getResourceTags("IAMRole", "lambda-execution-role"),
   },
   {
     protect: true,
@@ -257,6 +274,7 @@ const lambdaExectutionRole = new aws.iam.Role(
 
 const processArticleDLQ = new aws.sqs.Queue("process_article_dlq", {
   visibilityTimeoutSeconds: 900, // 15 minutes
+  tags: getResourceTags("SQSQueue", "process-article-dlq"),
 });
 
 const processArticleQueue = new aws.sqs.Queue("process_article_queue", {
@@ -265,6 +283,7 @@ const processArticleQueue = new aws.sqs.Queue("process_article_queue", {
       "deadLetterTargetArn": "${processArticleDLQ.arn}",
       "maxReceiveCount": 5
     }`,
+  tags: getResourceTags("SQSQueue", "process-article-queue"),
 });
 
 const processArticle = new aws.lambda.Function(
@@ -305,6 +324,7 @@ const processArticle = new aws.lambda.Function(
     code: new pulumi.asset.AssetArchive({
       ".": new pulumi.asset.FileArchive("./dist/process-article"),
     }),
+    tags: getResourceTags("Lambda", "process-article"),
   },
   {
     protect: true,
@@ -356,6 +376,7 @@ const lambdaImagesEcrRepository = new aws.ecr.Repository(
     imageTagMutability: "MUTABLE",
     forceDelete: true,
     name: "lambda-images",
+    tags: getResourceTags("ECRRepository", "lambda-images"),
   }
 );
 
@@ -373,6 +394,7 @@ const articleTrainingDataBucket = new aws.s3.BucketV2(
   "article_training_data_bucket",
   {
     bucket: `lit-feed-${stack}-article-training-data`,
+    tags: getResourceTags("S3Bucket", "article-training-data"),
     lifecycleRules: [
       {
         abortIncompleteMultipartUploadDays: 0,
@@ -416,6 +438,7 @@ const articleTrainingDataBucket = new aws.s3.BucketV2(
 
 const trainLikedArticlesDLQ = new aws.sqs.Queue("train_liked_articles_dlq", {
   visibilityTimeoutSeconds: 900, // 15 minutes
+  tags: getResourceTags("SQSQueue", "train-liked-articles-dlq"),
 });
 
 const trainLikedArticlesQueue = new aws.sqs.Queue(
@@ -426,6 +449,7 @@ const trainLikedArticlesQueue = new aws.sqs.Queue(
       "deadLetterTargetArn": "${trainLikedArticlesDLQ.arn}",
       "maxReceiveCount": 5
     }`,
+    tags: getResourceTags("SQSQueue", "train-liked-articles-queue"),
   }
 );
 
@@ -452,6 +476,7 @@ const trainLikedArticles = new aws.lambda.Function("train_liked_articles", {
     mode: "PassThrough",
   },
   imageUri: trainLikedArticlesEcrImage.imageUri,
+  tags: getResourceTags("Lambda", "train-liked-articles"),
 });
 
 const eventSourceMappingTrainLikedArticles = new aws.lambda.EventSourceMapping(
@@ -512,10 +537,12 @@ const updateArticleScore = new aws.lambda.Function("update_article_score", {
     mode: "PassThrough",
   },
   imageUri: updateArticleScoreImage.imageUri,
+  tags: getResourceTags("Lambda", "update-article-score"),
 });
 
 const updateArticleScoreDLQ = new aws.sqs.Queue("update_article_score_dlq", {
   visibilityTimeoutSeconds: 900, // 15 minutes
+  tags: getResourceTags("SQSQueue", "update-article-score-dlq"),
 });
 
 const updateArticleScoreQueue = new aws.sqs.Queue(
@@ -526,6 +553,7 @@ const updateArticleScoreQueue = new aws.sqs.Queue(
       "deadLetterTargetArn": "${updateArticleScoreDLQ.arn}",
       "maxReceiveCount": 5
     }`,
+    tags: getResourceTags("SQSQueue", "update-article-score-queue"),
   }
 );
 
@@ -543,6 +571,7 @@ const eventSourceMappingUpdateArticle = new aws.lambda.EventSourceMapping(
 
 const syncFeedDatabaseDLQ = new aws.sqs.Queue("sync_feed_database_dlq", {
   visibilityTimeoutSeconds: 900, // 15 minutes
+  tags: getResourceTags("SQSQueue", "sync-feed-database-dlq"),
 });
 
 const syncFeedDatabaseQueue = new aws.sqs.Queue("sync_feed_database_queue", {
@@ -551,6 +580,7 @@ const syncFeedDatabaseQueue = new aws.sqs.Queue("sync_feed_database_queue", {
       "deadLetterTargetArn": "${syncFeedDatabaseDLQ.arn}",
       "maxReceiveCount": 5
     }`,
+  tags: getResourceTags("SQSQueue", "sync-feed-database-queue"),
 });
 
 const syncFeedDatabase = new aws.lambda.Function("sync_feed_database", {
@@ -581,6 +611,7 @@ const syncFeedDatabase = new aws.lambda.Function("sync_feed_database", {
   code: new pulumi.asset.AssetArchive({
     ".": new pulumi.asset.FileArchive("./dist/sync-feed-database"),
   }),
+  tags: getResourceTags("Lambda", "sync-feed-database"),
 });
 
 const eventSourceMappingSyncFeedDatabase = new aws.lambda.EventSourceMapping(
@@ -599,6 +630,7 @@ const mongoDumpBucket = new aws.s3.BucketV2(
   "mongo_dump_bucket",
   {
     bucket: `lit-feed-${stack}-mongo-dump-bucket`,
+    tags: getResourceTags("S3Bucket", "mongo-dump-bucket"),
     lifecycleRules: [
       {
         abortIncompleteMultipartUploadDays: 0,
@@ -691,6 +723,7 @@ const mongoDumpLambda = new aws.lambda.Function("mongo_dump_lambda", {
     mode: "PassThrough",
   },
   imageUri: mongoDumpImage.imageUri,
+  tags: getResourceTags("Lambda", "mongodump-lambda"),
 });
 
 // Run mongodump lambda every night at 12 oclock
@@ -723,6 +756,7 @@ const lambdaPermission = new aws.lambda.Permission(
 
 const athenaResultsBucket = new aws.s3.Bucket("athena-results-bucket", {
   acl: "private", // Keep the bucket private as it contains query results
+  tags: getResourceTags("S3Bucket", "athena-results-bucket"),
   lifecycleRules: [
     {
       enabled: true,
