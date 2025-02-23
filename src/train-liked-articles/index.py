@@ -185,7 +185,7 @@ def handler(event, context):
 
     X_transformed = preprocessor.transform(data)
 
-    classifier.partial_fit(X_transformed, y, classes=classes)
+    classifier.partial_fit(X_transformed, y)
 
   if is_test_run:
     print('Running tests')
