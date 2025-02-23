@@ -1,120 +1,6 @@
 import { callGpt, GptBackend } from "@/process-article/utils/http";
 import { BackendArticle } from "@/types";
-
-const categories = [
-  "APIs",
-  "Mobile",
-  "Apps",
-  "Health",
-  "Politics",
-  "Sports",
-  "Energy",
-  "Business",
-  "Engineering",
-  "Design",
-  "AI",
-  "Asia",
-  "Europe",
-  "Africa",
-  "Americas",
-  "Oceania",
-  "China",
-  "India",
-  "Russia",
-  "Ukraine",
-  "MiddleEast",
-  "NorthAmerica",
-  "Emergency",
-  "Trump",
-  "Musk",
-  "Bezos",
-  "Zuckerberg",
-  "Coding",
-  "Religion",
-  "Culture",
-  "OpenSource",
-  "DevTools",
-  "OS",
-  "Terminal",
-  "Testing",
-  "Video",
-  "Cloud",
-  "Analytics",
-  "Graphics",
-  "Gaming",
-  "UI",
-  "Guides",
-  "Writing",
-  "GenAI",
-  "Scandal",
-  "Crypto",
-  "Stocks",
-  "Trading",
-  "Libraries",
-  "Networking",
-  "Interfaces",
-  "FOSS",
-  "Consumer",
-  "Performance",
-  "Power",
-  "Security",
-  "Emerging",
-  "Concurrency",
-  "Bandwidth",
-  "Communication",
-  "Vision",
-  "Modeling",
-  "Brands",
-  "Messaging",
-  "Remote",
-  "Media",
-  "Containers",
-  "AGI",
-  "LLM",
-  "ABTesting",
-  "Chips",
-  "DataScience",
-  "Accelerators",
-  "Marketing",
-  "Personal",
-  "Architecture",
-  "Education",
-  "Software",
-  "Accessibility",
-  "Chemistry",
-  "Protocols",
-  "Industry",
-  "Standards",
-  "Database",
-  "Robotics",
-  "VR",
-  "Quantum",
-  "IoT",
-  "5G",
-  "Space",
-  "Cyberlaw",
-  "Fintech",
-  "Ecommerce",
-  "Startups",
-  "Privacy",
-  "CloudSec",
-  "DevOps",
-  "Ethics",
-  "Bioinformatics",
-  "SmartCities",
-  "Distributed",
-  "Wearables",
-  "Licensing",
-  "Policy",
-  "Sustainability",
-  "HPC",
-  "Visualization",
-  "CloudInfra",
-  "Automation",
-  "Social",
-  "Innovation",
-  "EmergingTech",
-];
+import categories from "./categories.json";
 
 export async function makeArticleTags(fullDocument: BackendArticle) {
   const { link: url, textContent: content, title } = fullDocument;
@@ -141,13 +27,15 @@ export async function makeArticleTags(fullDocument: BackendArticle) {
     backend: GptBackend.Cf,
   });
 
-  const tags = response
+  const allTags = response
     .split(",")
     .map((tag: string) => tag.replace(/[^A-Za-z]/g, "").trim())
-    .filter((tag: string) =>
-      categories.map((c) => c.toLowerCase()).includes(tag.toLowerCase())
+    .map((tag: string) =>
+      categories.find((c) => c.toLowerCase() === tag.toLowerCase())
     )
-    .slice(0, 5);
+    .filter((tag: string) => tag);
+
+  const tags = Array.from(new Set(allTags)).slice(0, 5);
 
   if (!tags.length) {
     console.warn("No tags found", { url });
