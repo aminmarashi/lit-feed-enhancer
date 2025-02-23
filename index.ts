@@ -111,6 +111,7 @@ const processArticleLambdaLogGroup = new aws.cloudwatch.LogGroup(
     logGroupClass: "STANDARD",
     name: "/aws/lambda/process-article",
     retentionInDays: 30,
+    tags: getResourceTags("LogGroup", "process-article-logs"),
   },
   {
     protect: true,
@@ -349,6 +350,7 @@ const syncFeedDatabaseLambdaLogGroup = new aws.cloudwatch.LogGroup(
     logGroupClass: "STANDARD",
     name: "/aws/lambda/sync-feed-database",
     retentionInDays: 30,
+    tags: getResourceTags("LogGroup", "sync-feed-database-logs"),
   },
   {
     protect: true,
@@ -361,6 +363,7 @@ const trainLikedArticlesLogGroup = new aws.cloudwatch.LogGroup(
     logGroupClass: "STANDARD",
     name: "/aws/lambda/train-liked-articles",
     retentionInDays: 30,
+    tags: getResourceTags("LogGroup", "train-liked-articles-logs"),
   },
   {
     protect: true,
@@ -497,6 +500,7 @@ const updateArticleScoreLogGroup = new aws.cloudwatch.LogGroup(
     logGroupClass: "STANDARD",
     name: "/aws/lambda/update-article-score",
     retentionInDays: 30,
+    tags: getResourceTags("LogGroup", "update-article-score-logs"),
   },
   {
     protect: true,
@@ -693,6 +697,7 @@ const mongoDumpLambdaLogGroup = new aws.cloudwatch.LogGroup(
     logGroupClass: "STANDARD",
     name: "/aws/lambda/mongodump",
     retentionInDays: 30,
+    tags: getResourceTags("LogGroup", "mongodump-logs"),
   },
   {
     protect: true,
