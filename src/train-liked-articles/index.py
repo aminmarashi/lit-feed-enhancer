@@ -107,11 +107,14 @@ def handler(event, context):
   data['summary'] = data['summary'].fillna('').astype(str)
   labeled_data = data[data['isliked'].notna()]
   neutral_data = data[data['isliked'].isna()]
-  if len(neutral_data) >= len(labeled_data):
-    neutral_sample = neutral_data.sample(n=len(labeled_data), random_state=42)
+  if len(labeled_data) > 0:
+    if len(neutral_data) >= len(labeled_data):
+      neutral_sample = neutral_data.sample(n=len(labeled_data), random_state=42)
+    else:
+      neutral_sample = neutral_data
+    data = pd.concat([labeled_data, neutral_sample])
   else:
-    neutral_sample = neutral_data
-  data = pd.concat([labeled_data, neutral_sample])
+    data = neutral_data
 
   if is_test_run:
     print(f"Total articles: {len(data)}")
