@@ -24,6 +24,7 @@ const categories = [
   "Ukraine",
   "MiddleEast",
   "NorthAmerica",
+  "Emergency",
   "Trump",
   "Musk",
   "Bezos",
