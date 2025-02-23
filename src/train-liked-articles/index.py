@@ -169,6 +169,10 @@ def handler(event, context):
       ('preprocessor', preprocessor),
       ('classifier', classifier)
     ])
+    pipeline.meta = {
+      'labeled_count': len(labeled_data),
+      'neutral_count': len(neutral_data)
+    }
     print('pipeline created from scratch')
 
     # Oversampling
@@ -182,10 +186,21 @@ def handler(event, context):
   else:
     preprocessor = pipeline.named_steps['preprocessor']
     classifier = pipeline.named_steps['classifier']
+    if pipeline.meta['neutral_count'] > pipeline.meta['labeled_count']:
+      drop_probability = 1 - (pipeline.meta['labeled_count'] / pipeline.meta['neutral_count'])
+    else:
+      drop_probability = 0
 
-    X_transformed = preprocessor.transform(data)
+    is_neutral_article = data['isliked'].isna().any()
+    should_skip_training = 1 if is_neutral_article and np.random.rand() < drop_probability else 0
 
-    classifier.partial_fit(X_transformed, y)
+    # Update your counts after training
+    pipeline.meta['labeled_count'] += 1 if not is_neutral_article else 0
+    pipeline.meta['neutral_count'] += 1 if is_neutral_article else 0
+
+    if not should_skip_training:
+      X_transformed = preprocessor.transform(data)
+      classifier.partial_fit(X_transformed, y)
 
   if is_test_run:
     print('Running tests')
