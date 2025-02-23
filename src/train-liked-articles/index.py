@@ -130,7 +130,6 @@ def handler(event, context):
   for column in data.columns:
     if column not in ['title', 'summary']:
       data = data.drop(column, axis=1)
-  
   if is_test_run:
     if column not in ['title', 'summary']:
       data_for_testing = data_for_testing.drop(column, axis=1)
@@ -157,7 +156,7 @@ def handler(event, context):
     preprocessor = ColumnTransformer(
       transformers=[
         ('title', TfidfVectorizer(max_features=10000, max_df=0.7, ngram_range=(1, 5)), 'title'),
-        ('summary', TfidfVectorizer(max_features=1000000, max_df=0.7, ngram_range=(1, 5)), 'summary'), 
+        ('summary', TfidfVectorizer(max_features=1000000, max_df=0.7, ngram_range=(1, 5)), 'summary'),
       ]
     )
 
@@ -191,12 +190,15 @@ def handler(event, context):
     else:
       drop_probability = 0
 
-    is_neutral_article = data['isliked'].isna().any()
+    # data is just one article, is_neutral_article can be calculated from y
+    is_neutral_article = y.iloc[0] == 0
     should_skip_training = 1 if is_neutral_article and np.random.rand() < drop_probability else 0
 
     # Update your counts after training
     pipeline.meta['labeled_count'] += 1 if not is_neutral_article else 0
     pipeline.meta['neutral_count'] += 1 if is_neutral_article else 0
+
+    print(f"So far processed {pipeline.meta['labeled_count']} labeled articles and {pipeline.meta['neutral_count']} neutral articles, drop probability: {drop_probability}, should skip training: {should_skip_training}")
 
     if not should_skip_training:
       X_transformed = preprocessor.transform(data)
@@ -237,7 +239,7 @@ def handler(event, context):
   }
 
 if __name__ == '__main__':
-  # '245f23984f233d32b233f2f2', '245f23984f233d32b233f2f3', '65a90719332e28717a201fef', '65c808822106a2b232456a80', '67836d530434b6b2874c3f1c',
+  # '245f23984f233d32b233f2f2', '245f23984f233d32b233f2f3', '65a90719332e28717a201fef', '65c808822106a2b232456a80', 'localhostUser', 'tempUserId'
   users = [ '65a90719332e28717a201fef']
   for user in users:
     result = handler({
