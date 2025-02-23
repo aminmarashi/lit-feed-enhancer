@@ -18,12 +18,12 @@ export async function commitArticleToDb(fullDocument: BackendArticle) {
   });
 
   if (
-    !fullDocument.textContent &&
-    !fullDocument.summary &&
+    !fullDocument.textContent ||
+    !fullDocument.summary ||
     !fullDocument.tags
   ) {
     console.warn(
-      "No processing done on article to be saved, skipping DB update",
+      "Processing not done on article to be saved, skipping DB update",
       {
         fullDocument,
       }
