@@ -1,5 +1,4 @@
 #! /usr/bin/env python3
-import time
 import json
 import pandas as pd
 import joblib
@@ -12,7 +11,6 @@ from sklearn.pipeline import Pipeline
 import awswrangler as wr
 import os
 import numpy as np
-from sklearn.utils.class_weight import compute_class_weight
 from imblearn.over_sampling import RandomOverSampler
 from custom_transformers import OrderedTagVectorizer
 from sklearn.linear_model import SGDClassifier
@@ -23,11 +21,8 @@ athena_cache_filename = 'athena_cache.csv'
 lambda_tmp_dir = '/tmp'
 bucket_name = os.environ.get('TRAINING_DATA_BUCKET_NAME', 'lit-feed-dev-article-training-data')
 is_test_run = os.environ.get('TEST_RUN', 'False') == 'True'
+train_from_scratch = os.environ.get('TRAIN_FROM_SCRATCH', 'False') == 'True'
 testing_sample_fraction = float(os.environ.get('TESTING_SAMPLE_FRACTION', '0.2'))
-like_bias = float(os.environ.get('LIKE_BIAS', '1'))
-dislike_bias = float(os.environ.get('DISLIKE_BIAS', '1'))
-neutral_bias = float(os.environ.get('NEUTRAL_BIAS', '1'))
-print(f"Biased by: like: {like_bias}, dislike: {dislike_bias}, neutral: {neutral_bias}")
 
 def check_file_exists_in_s3(s3, Bucket, Key):
   try:
@@ -36,13 +31,18 @@ def check_file_exists_in_s3(s3, Bucket, Key):
   except:
     return False
 
-def count_disliked_articles(articles, article_probabilities):
-  disliked_articles = 0
-  # Iterate over all articles and find the articles for which corresponding article_probabilities[0] > 0.33
+def count_identified_articles(articles, article_probabilities, category):
+  identified_articles = 0
+  threshold = 0.2
   for i in range(len(articles)):
-    if article_probabilities[i][0] > 0.33:
-      disliked_articles += 1
-  return disliked_articles
+    if category == 'liked':
+      if article_probabilities[i][2] - article_probabilities[i][0] > threshold:
+        identified_articles += 1
+    elif category == 'disliked':
+      if article_probabilities[i][0] - article_probabilities[i][2] > threshold:
+        identified_articles += 1
+  return identified_articles
+
 def handler(event, context):
   article = json.loads(event.get('Records')[0].get('body'))
 
@@ -67,12 +67,10 @@ def handler(event, context):
   boto3.setup_default_session()
   s3 = boto3.client('s3')
   shouldLoadFromScratch = True
-  if not is_test_run:
+  pipeline = None
+  if not is_test_run and not train_from_scratch:
     print('Loading pipeline')
     try:
-      # TODO: Move the function call to SQS queue so that we don't lose articles due to race conditions
-      # It takes each lambda 7 seconds to finish, and if another training is done during that time one
-      # it will override the result
       if os.path.exists(pipeline_full_filename):
         pipeline = joblib.load(pipeline_full_filename)
         print("Pipeline loaded from /tmp")
@@ -80,75 +78,85 @@ def handler(event, context):
         key = f'{userId}/{pipeline_filename}'
         s3.download_file(bucket_name, key, pipeline_full_filename)
         pipeline = joblib.load(pipeline_full_filename)
-        print("pipeline loaded from s3")
+        print("Pipeline loaded from s3")
       shouldLoadFromScratch = False
     except Exception as e:
-      print('Pipeline will have to be created from scratch' + str(e))
+      print('Pipeline will have to be created from scratch: ' + str(e))
   else:
     print('Running locally, training will be done from scratch')
-  
+
   if shouldLoadFromScratch:
     if os.path.exists(athena_cache_full_filename):
       data = pd.read_csv(athena_cache_full_filename)
-      print('loaded data from local athena cache')
+      print('Loaded data from local Athena cache')
     elif check_file_exists_in_s3(s3, Bucket=bucket_name, Key=athena_cache_in_s3):
       print('Loading training data from S3')
       s3.download_file(bucket_name, athena_cache_in_s3, athena_cache_full_filename)
       data = pd.read_csv(athena_cache_full_filename)
-      print('loaded data from S3 athena cache')
+      print('Loaded data from S3 Athena cache')
     else:
       print('Loading training data from Athena')
-      query = f"select distinct u.title, b.tags, u.userid, u.issaved, u.isliked, b.summary from feed.user_articles u join feed.backend_articles b on u.href = b.link where u.userId = '{userId}'"
+      query = f"select distinct u.title, u.userid, u.issaved, u.isliked, u.action, b.summary, b.tags from feed.user_articles u join feed.backend_articles b on u.href = b.link where u.userId = '{userId}' and (u.isliked is not null or u.action != 'markAllAsRead' or u.action is null)"
       data = wr.athena.read_sql_query(query, database='feed')
       data.to_csv(athena_cache_full_filename, index=False)
       print('Storing Athena results in S3')
       s3.upload_file(athena_cache_full_filename, bucket_name, athena_cache_in_s3)
-      print('loaded data from Athena')
+      print('Loaded data from Athena')
   else:
     print('Training data loaded from the event')
     data = pd.DataFrame([article])
 
   data['tags'] = data['tags'].apply(lambda x: x if isinstance(x, (list, np.ndarray)) else [])
   data['summary'] = data['summary'].fillna('').astype(str)
+  labeled_data = data[data['isliked'].notna()]
+  neutral_data = data[data['isliked'].isna()]
+  if len(neutral_data) >= len(labeled_data):
+    neutral_sample = neutral_data.sample(n=len(labeled_data), random_state=42)
+  else:
+    neutral_sample = neutral_data
+  data = pd.concat([labeled_data, neutral_sample])
 
   if is_test_run:
+    print(f"Total articles: {len(data)}")
     print(f"Testing sample fraction: {testing_sample_fraction}")
     data_for_testing = data.sample(frac=testing_sample_fraction)
+    print(f"Testing on {len(data_for_testing)} articles")
     data = data.drop(data_for_testing.index)
+    print(f"Training on {len(data)} articles")
 
+  # Define target y: liked (1) if isliked is True, disliked (-1) if False.
   y = data['isliked'].apply(lambda x: 0 if pd.isna(x) or x == None else 1 if x else -1)
-  # If issaved is True, set y to 1
-  y = y.where(data['issaved'] == False, 1) # change to 1 if saved is true
+  # Override y to 1 if issaved is True.
+  y = y.where(data['issaved'] == False, 1)
 
-  # Delete all columns from data except for title, summary and tags
-  all_data_columns = data.columns
-  for column in all_data_columns:
+  # Keep only the necessary columns.
+  for column in data.columns:
     if column not in ['title', 'summary', 'tags']:
       data = data.drop(column, axis=1)
-
-  classes = [-1, 0, 1]  # Ensure all classes are represented in the partial_fit call
+  
+  if is_test_run:
+    if column not in ['title', 'summary', 'tags']:
+      data_for_testing = data_for_testing.drop(column, axis=1)
 
   if shouldLoadFromScratch:
     if len(y[y == -1]) == 0 and len(y[y == 1]) == 0:
-      print("No liked and disliked articles, moving two from neutral")
-      y.iloc[0] = -1
-      y.iloc[1] = 1
+      print("No liked or disliked articles found")
     elif len(y[y == -1]) == 0:
-      print("No disliked articles, moving one from neutral to disliked")
+      print("No disliked articles, forcing one article to be disliked")
       y.iloc[0] = -1
     elif len(y[y == 1]) == 0:
-      print("No liked articles, moving one from neutral to liked")
+      print("No liked articles, forcing one article to be liked")
       y.iloc[0] = 1
 
-  print('Starting the training with the following outputs')
-  y_equal_1 = y[y == 1]
-  y_equal_0 = y[y == 0]
-  y_equal_m1 = y[y == -1]
-  print(f"y = 1: {len(y_equal_1)}")
-  print(f"y = 0: {len(y_equal_0)}")
-  print(f"y = -1: {len(y_equal_m1)}")
+    print('Starting training with the following outputs')
+    y_equal_1 = y[y == 1]
+    y_equal_0 = y[y == 0]
+    y_equal_m1 = y[y == -1]
+    print(f"y = 1: {len(y_equal_1)}")
+    print(f"y = 0: {len(y_equal_0)}")
+    print(f"y = -1: {len(y_equal_m1)}")
 
-  if shouldLoadFromScratch:
+    # Build a preprocessor that uses two embedding transformers.
     preprocessor = ColumnTransformer(
       transformers=[
         ('title', TfidfVectorizer(max_features=10000, max_df=0.7, ngram_range=(1, 5)), 'title'),
@@ -156,13 +164,7 @@ def handler(event, context):
         ('tags', OrderedTagVectorizer(), 'tags'),
       ]
     )
-    numpy_classes = np.array(classes)
-    class_weights = compute_class_weight(class_weight='balanced', classes=numpy_classes, y=y)
-    class_weights_dict = dict(zip(numpy_classes, class_weights))
-    class_weights_dict[-1] *= dislike_bias
-    class_weights_dict[1] *= like_bias
-    class_weights_dict[0] *= neutral_bias
-    print(f"Class weights: {class_weights_dict}")
+
     classifier = SGDClassifier(loss='log_loss', penalty='elasticnet', alpha=0.0001, l1_ratio=0.15,
                         learning_rate='adaptive', eta0=0.01,
                         validation_fraction=0.1, n_iter_no_change=5, random_state=42)
@@ -180,9 +182,7 @@ def handler(event, context):
 
     pipeline.fit(data_resampled, y_resampled)
 
-    print("Shape of data_resampled:", data_resampled.shape)
-    print("Shape of y_resampled:", y_resampled.shape)
-
+    print('Pipeline created and trained from scratch')
   else:
     preprocessor = pipeline.named_steps['preprocessor']
     classifier = pipeline.named_steps['classifier']
@@ -192,24 +192,21 @@ def handler(event, context):
     classifier.partial_fit(X_transformed, y, classes=classes)
 
   if is_test_run:
+    print('Running tests')
+    # Transform test data.
     articles_is_liked = data_for_testing[data_for_testing['isliked'] == True]
     articles_is_saved = data_for_testing[data_for_testing['issaved'] == True]
-    # liked_articles is appended of articles_is_liked and articles_is_saved
     liked_articles = pd.concat([articles_is_liked, articles_is_saved])
     liked_articles_probabilities = pipeline.predict_proba(liked_articles)
-    predicted_disliked_articles = count_disliked_articles(liked_articles, liked_articles_probabilities)
+    predicted_disliked_articles = count_identified_articles(liked_articles, liked_articles_probabilities, 'liked')
     print(f'Wrongly identified liked articles: {predicted_disliked_articles} from {len(liked_articles)}')
     article_is_disliked = data_for_testing[data_for_testing['isliked'] == False]
-    article_is_disliked_probabilities = pipeline.predict_proba(article_is_disliked)
-    predicted_disliked_articles = count_disliked_articles(article_is_disliked, article_is_disliked_probabilities)
+    test_probs_disliked = pipeline.predict_proba(article_is_disliked)
+    predicted_disliked_articles = count_identified_articles(article_is_disliked, test_probs_disliked, 'disliked')
     print(f'Wrongly identified disliked articles: {len(article_is_disliked) - predicted_disliked_articles} from {len(article_is_disliked)}')
-    neutral_articles = data_for_testing[data_for_testing['isliked'].isna()]
-    neutral_articles_probabilities = pipeline.predict_proba(neutral_articles)
-    predicted_disliked_articles = count_disliked_articles(neutral_articles, neutral_articles_probabilities)
-    print(f'Wrongly identified neutral articles: {predicted_disliked_articles} from {len(neutral_articles)}')
 
-  # Save the model and vectorizer back to S3
-  print('Saving the data in S3')
+  # Save the pipeline to S3.
+  print('Saving the pipeline in S3')
   joblib.dump(pipeline, pipeline_full_filename)
   if not is_test_run:
     s3.upload_file(pipeline_full_filename, bucket_name, f'{userId}/{pipeline_filename}')
@@ -222,17 +219,17 @@ def handler(event, context):
       'message': 'Training completed successfully',
       'userId': userId,
       'stats': {
-        'y = 1': len(y_equal_1),
-        'y = 0': len(y_equal_0),
-        'y = -1': len(y_equal_m1)
+        'y = 1': int(len(y[y == 1])),
+        'y = -1': int(len(y[y == -1]))
       }
     })
   }
 
 if __name__ == '__main__':
-  result = handler({
-    'userId': '65a90719332e28717a201fef',
-    # 65a90719332e28717a201fef/
-    # 	65c808822106a2b232456a80/
-  }, None)
-  print(result)
+  # '245f23984f233d32b233f2f2', '245f23984f233d32b233f2f3', '65a90719332e28717a201fef', '65c808822106a2b232456a80', '67836d530434b6b2874c3f1c',
+  users = [ '65a90719332e28717a201fef']
+  for user in users:
+    result = handler({
+      'Records': [{'body': json.dumps({'userId': user})}]
+    }, None)
+    print(result)

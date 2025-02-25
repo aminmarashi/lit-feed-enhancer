@@ -812,6 +812,7 @@ const userArticlesTable = new aws.glue.CatalogTable("user_articles", {
       { name: "isread", type: "boolean", comment: "from deserializer" },
       { name: "issaved", type: "boolean", comment: "from deserializer" },
       { name: "title", type: "string", comment: "from deserializer" },
+      { name: "action", type: "string", comment: "from deserializer" },
     ],
     location: pulumi.concat("s3://", feedEventsBucket.bucket, "/articles"),
     inputFormat: "org.apache.hadoop.mapred.TextInputFormat",
