@@ -61,8 +61,6 @@ def handler(event, context):
     article.pop('isLiked')
   if not 'summary' in article:
     article['summary'] = ''
-  if not 'tags' in article:
-    article['tags'] = []
 
   boto3.setup_default_session()
   s3 = boto3.client('s3')
@@ -96,7 +94,7 @@ def handler(event, context):
       print('Loaded data from S3 Athena cache')
     else:
       print('Loading training data from Athena')
-      query = f"select distinct u.title, u.userid, u.issaved, u.isliked, u.action, b.summary, b.tags from feed.user_articles u join feed.backend_articles b on u.href = b.link where u.userId = '{userId}' and (u.isliked is not null or u.action != 'markAllAsRead' or u.action is null)"
+      query = f"select distinct u.title, u.userid, u.issaved, u.isliked, u.action, b.summary from feed.user_articles u join feed.backend_articles b on u.href = b.link where u.userId = '{userId}' and (u.isliked is not null or u.action != 'markAllAsRead' or u.action is null)"
       data = wr.athena.read_sql_query(query, database='feed')
       data.to_csv(athena_cache_full_filename, index=False)
       print('Storing Athena results in S3')
@@ -106,7 +104,6 @@ def handler(event, context):
     print('Training data loaded from the event')
     data = pd.DataFrame([article])
 
-  data['tags'] = data['tags'].apply(lambda x: x if isinstance(x, (list, np.ndarray)) else [])
   data['summary'] = data['summary'].fillna('').astype(str)
   labeled_data = data[data['isliked'].notna()]
   neutral_data = data[data['isliked'].isna()]
@@ -131,11 +128,11 @@ def handler(event, context):
 
   # Keep only the necessary columns.
   for column in data.columns:
-    if column not in ['title', 'summary', 'tags']:
+    if column not in ['title', 'summary']:
       data = data.drop(column, axis=1)
   
   if is_test_run:
-    if column not in ['title', 'summary', 'tags']:
+    if column not in ['title', 'summary']:
       data_for_testing = data_for_testing.drop(column, axis=1)
 
   if shouldLoadFromScratch:
@@ -161,7 +158,6 @@ def handler(event, context):
       transformers=[
         ('title', TfidfVectorizer(max_features=10000, max_df=0.7, ngram_range=(1, 5)), 'title'),
         ('summary', TfidfVectorizer(max_features=1000000, max_df=0.7, ngram_range=(1, 5)), 'summary'), 
-        ('tags', OrderedTagVectorizer(), 'tags'),
       ]
     )
 

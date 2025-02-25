@@ -51,12 +51,10 @@ def handler(event, context):
       }
   pipeline = joblib.load(pipeline_full_filename)
   ## Todo handle when there is no pipeline in s3
-  expected_keys =['title', 'tags', 'summary'] 
+  expected_keys =['title', 'summary'] 
 
   if not 'summary' in articles.columns:
     articles['summary'] = ''
-  if not 'tags' in articles.columns:
-    articles['tags'] = []
 
   for column in articles.columns:
     if column not in expected_keys:
@@ -114,7 +112,6 @@ if __name__ == '__main__':
     "isSaved": false,
     "summary": "Former Victorian Supreme Court judge Kevin Bell argues that housing should be treated as a human right in Australia, describing the current housing situation as a socio-economic disaster rather than a crisis. In his book, \\"Housing: The Great Australian Right,\\" Bell critiques the focus on housing as a commodity for private gain, which he sees as a fundamental problem. He recalls a time when government-supported social housing was more prevalent, emphasizing that the current system disproportionately benefits property owners while leaving many without affordable housing. Bell highlights the connections between housing and broader societal issues, including mental health and social justice, and advocates for a national housing strategy that emphasizes human rights and comprehensive legislative support to address these systemic failures.",
     "synchedAt": "2024-08-04T08:00:11.379Z",
-    "tags": ["rights", "system", "homelessness", "government", "values"],
     "title": "Australia must treat housing as a human right: Former State Supreme Court judge",
     "updatedAt": "2024-08-04T08:00:04.933Z"
   }
