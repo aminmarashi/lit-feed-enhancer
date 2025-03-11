@@ -21,6 +21,7 @@ athena_cache_filename = 'athena_cache.csv'
 lambda_tmp_dir = '/tmp'
 bucket_name = os.environ.get('TRAINING_DATA_BUCKET_NAME', 'lit-feed-dev-article-training-data')
 is_test_run = os.environ.get('TEST_RUN', 'False') == 'True'
+fetch_from_athena = os.environ.get('FETCH_FROM_ATHENA', 'False') == 'True'
 train_from_scratch = os.environ.get('TRAIN_FROM_SCRATCH', 'False') == 'True'
 testing_sample_fraction = float(os.environ.get('TESTING_SAMPLE_FRACTION', '0.2'))
 
@@ -84,10 +85,10 @@ def handler(event, context):
     print('Running locally, training will be done from scratch')
 
   if shouldLoadFromScratch:
-    if os.path.exists(athena_cache_full_filename):
+    if (not fetch_from_athena) and os.path.exists(athena_cache_full_filename):
       data = pd.read_csv(athena_cache_full_filename)
       print('Loaded data from local Athena cache')
-    elif check_file_exists_in_s3(s3, Bucket=bucket_name, Key=athena_cache_in_s3):
+    elif (not fetch_from_athena) and check_file_exists_in_s3(s3, Bucket=bucket_name, Key=athena_cache_in_s3):
       print('Loading training data from S3')
       s3.download_file(bucket_name, athena_cache_in_s3, athena_cache_full_filename)
       data = pd.read_csv(athena_cache_full_filename)
