@@ -1,5 +1,5 @@
 const gptApiKey = process.env.CF_API_KEY;
-const gptModelName = "@cf/meta/llama-3.3-70b-instruct-fp8-fast";
+const gptModelName = "@cf/meta/llama-3.2-1b-instruct";
 
 const gptRequestHeaders = {
   "Content-Type": "application/json",
