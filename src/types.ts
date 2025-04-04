@@ -46,6 +46,7 @@ export const UserArticleSchema = z.object({
   createdAt: z.date(),
   updatedAt: z.date(),
   synchedAt: z.date(),
+  processedAt: z.date().optional(),
   image: z.string().optional(),
   summary: z.string().optional(),
   tags: z.array(z.string()).optional(),
@@ -73,6 +74,7 @@ export const BackendArticleSchema = z.object({
   summary: z.string().optional(),
   textContent: z.string().optional(),
   tags: z.array(z.string()).optional(),
+  processedAt: z.coerce.date().optional(),
 });
 
 export const UserSchema = z.object({

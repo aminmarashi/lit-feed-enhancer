@@ -16,6 +16,14 @@ export async function handler(request: any) {
   const body = JSON.parse(request.Records[0].body);
   const backendArticle = BackendArticleSchema.parse(body);
 
+  if (backendArticle.processedAt) {
+    console.warn(
+      "Article already processed, skipping article processing",
+      backendArticle
+    );
+    return backendArticle;
+  }
+
   // Check if the backend article already exists in the backend database
   const backendArticleWithProcessedBits = await getProcessedArticle(
     backendArticle
