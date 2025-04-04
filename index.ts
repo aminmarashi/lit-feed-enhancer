@@ -532,7 +532,7 @@ const updateArticleScore = new aws.lambda.Function("update_article_score", {
     logFormat: "Text",
     logGroup: updateArticleScoreLogGroup.id,
   },
-  memorySize: 2048,
+  memorySize: 512,
   name: "updateArticleScore",
   packageType: "Image",
   role: lambdaExectutionRole.arn,
