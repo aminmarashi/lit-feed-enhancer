@@ -17,7 +17,7 @@ export async function makeArticleTags(fullDocument: BackendArticle) {
       categories: string[]
       title: string
       content: string
-      Your task is to find the top 5 most relevant categories from the given list of categories for the title and content and reply with only a valid json array. If the title and content are not relevant to any of the categories, return an empty array. Your output must be a valid json without any extra words or characters. The items in the array must be strings chosen from the given list of categories ordered by relevance. The items in the output array must be in the list of categories. If the relevance of two categories is the same, the one that appears first in the list must be chosen.
+      Your task is to return the top 5 most relevant categories from the list of categories provided based on the title and content. What you return is passed directly to a JSON parser, so make sure to return a valid JSON array of strings. Do not add any other text or explanation.
     `,
     content: `categories: ${JSON.stringify(
       categories,
