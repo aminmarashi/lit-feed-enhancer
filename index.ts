@@ -339,7 +339,7 @@ const eventSourceMappingProcessArticle = new aws.lambda.EventSourceMapping(
     eventSourceArn: processArticleQueue.arn,
     functionName: processArticle.arn,
     scalingConfig: {
-      maximumConcurrency: 2,
+      maximumConcurrency: 8,
     },
   }
 );
@@ -489,7 +489,7 @@ const eventSourceMappingTrainLikedArticles = new aws.lambda.EventSourceMapping(
     eventSourceArn: trainLikedArticlesQueue.arn,
     functionName: trainLikedArticles.arn,
     scalingConfig: {
-      maximumConcurrency: 2,
+      maximumConcurrency: 8,
     },
   }
 );
@@ -568,7 +568,7 @@ const eventSourceMappingUpdateArticle = new aws.lambda.EventSourceMapping(
     eventSourceArn: updateArticleScoreQueue.arn,
     functionName: updateArticleScore.arn,
     scalingConfig: {
-      maximumConcurrency: 2,
+      maximumConcurrency: 8,
     },
   }
 );
@@ -625,7 +625,7 @@ const eventSourceMappingSyncFeedDatabase = new aws.lambda.EventSourceMapping(
     eventSourceArn: syncFeedDatabaseQueue.arn,
     functionName: syncFeedDatabase.arn,
     scalingConfig: {
-      maximumConcurrency: 2,
+      maximumConcurrency: 8,
     },
   }
 );
