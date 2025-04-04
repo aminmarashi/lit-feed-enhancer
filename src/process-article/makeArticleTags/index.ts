@@ -17,7 +17,7 @@ export async function makeArticleTags(fullDocument: BackendArticle) {
       categories: string[]
       title: string
       content: string
-      Your task is to return the top 5 most relevant categories from the list of categories provided based on the title and content. What you return is passed directly to a JSON parser, so make sure to return a valid JSON array of strings. Do not add any other text or explanation.
+      Your task is to return exactly 5 most relevant categories from the list of categories provided based on the title and content. What you return is passed directly to a JSON parser, so make sure to return a valid JSON array of strings. Do not add any other text or explanation.
     `,
     content: `categories: ${JSON.stringify(
       categories,
