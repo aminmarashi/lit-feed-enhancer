@@ -11,7 +11,7 @@ export async function makeArticleSummary(fullDocument: BackendArticle) {
   console.info("Running makeArticleSummary action", { url, content });
 
   const summary = await callGpt({
-    systemPrompt: `The following is an article title followed by an article content, return an extensive summary of the article that keeps the essence of the article while remaining as short as possible. Do not add a single word from yourself. Reply with at least 100 characters. If the summary is not related to the article title: ${title}, reply with 'Done'`,
+    systemPrompt: `Return a summary of at least 100 characters long from the article that keeps the essence while remaining as short as possible.  If the content is not related to the title: ${title}, reply with 'Done' instead of the summary. The following message is the article content.`,
     content,
     backend: GptBackend.Cf,
   });
