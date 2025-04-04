@@ -38,7 +38,7 @@ export async function fetchArticleContent(fullDocument: BackendArticle) {
   console.info("Removed HTML tags", { url, rawContent });
 
   const content = await callGpt({
-    systemPrompt: `Extract the essence of this article, remove any remainder from removing html tags and only keep the relevant content, keep the details as accurately as possible, do not summarize the text, do not add a single word from yourself. If you want to refuse my request, just say "no" without any extra words.`,
+    systemPrompt: `Cleanup the text of this article, remove anything extra like html/JS tags and only keep the relevant content. If you cannot do that just reply with a single word: no. Keep the details as accurately as possible, do not summarize the text, do not add a single word from yourself.`,
     content: rawContent,
     backend: GptBackend.Cf,
   });

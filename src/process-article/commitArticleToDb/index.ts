@@ -25,6 +25,8 @@ export async function commitArticleToDb(fullDocument: BackendArticle) {
     backendArticlesCollection
   );
 
+  const currentTime = new Date();
+
   if (
     !fullDocument.textContent ||
     !fullDocument.summary ||
@@ -36,8 +38,6 @@ export async function commitArticleToDb(fullDocument: BackendArticle) {
         fullDocument,
       }
     );
-
-    const currentTime = new Date();
 
     // Update backend articles with processedAt even if processing wasn't complete
     await backendArticles.updateOne(
@@ -79,14 +79,15 @@ export async function commitArticleToDb(fullDocument: BackendArticle) {
         textContent: fullDocument.textContent,
         summary: fullDocument.summary,
         tags: fullDocument.tags,
-        updatedAt: new Date(),
-        processedAt: new Date(),
+        updatedAt: currentTime,
+        processedAt: currentTime,
       },
     }
   );
 
   console.log("Updated backend articles processed data", {
     updatedBackendArticles,
+    fullDocument,
   });
 
   /**
@@ -101,13 +102,14 @@ export async function commitArticleToDb(fullDocument: BackendArticle) {
       $set: {
         summary: fullDocument.summary,
         tags: fullDocument.tags,
-        updatedAt: new Date(),
-        processedAt: new Date(),
+        updatedAt: currentTime,
+        processedAt: currentTime,
       },
     }
   );
 
   console.log("Updated user articles processed data", {
     updatedArticles,
+    fullDocument,
   });
 }

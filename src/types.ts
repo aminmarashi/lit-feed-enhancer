@@ -68,13 +68,13 @@ export const BackendArticleSchema = z.object({
   content: z.string(),
   createdAt: z.coerce.date(),
   updatedAt: z.coerce.date(),
+  processedAt: z.coerce.date().optional(),
   pubDate: z.coerce.date(),
   image: z.string().optional(),
   duration: z.string().optional(),
   summary: z.string().optional(),
   textContent: z.string().optional(),
   tags: z.array(z.string()).optional(),
-  processedAt: z.coerce.date().optional(),
 });
 
 export const UserSchema = z.object({

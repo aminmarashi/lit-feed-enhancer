@@ -32,6 +32,7 @@ export async function getProcessedArticle(fullDocument: BackendArticle) {
 
   console.info("Found existing processed article", {
     link: fullDocument.link,
+    feedUrl: fullDocument.feedUrl,
     existingArticle,
   });
 
