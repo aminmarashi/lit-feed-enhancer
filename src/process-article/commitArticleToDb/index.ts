@@ -17,20 +17,6 @@ export async function commitArticleToDb(fullDocument: BackendArticle) {
     mongoUrl: "MONGO_URL",
   });
 
-  if (
-    !fullDocument.textContent ||
-    !fullDocument.summary ||
-    !fullDocument.tags
-  ) {
-    console.warn(
-      "Processing not done on article to be saved, skipping DB update",
-      {
-        fullDocument,
-      }
-    );
-    return;
-  }
-
   const mongoClient = await getMongoClient(mongoUrl);
   const userFeedDatabase = mongoClient.db(userFeedDatabaseName);
   const backendFeedDatabase = mongoClient.db(backendFeedDatabaseName);
@@ -39,6 +25,50 @@ export async function commitArticleToDb(fullDocument: BackendArticle) {
     backendArticlesCollection
   );
 
+  if (
+    !fullDocument.textContent ||
+    !fullDocument.summary ||
+    !fullDocument.tags
+  ) {
+    console.warn(
+      "Processing not done on article to be saved, still updating processedAt timestamp",
+      {
+        fullDocument,
+      }
+    );
+
+    const currentTime = new Date();
+
+    // Update backend articles with processedAt even if processing wasn't complete
+    await backendArticles.updateOne(
+      {
+        feedUrl: fullDocument.feedUrl,
+        link: fullDocument.link,
+      },
+      {
+        $set: {
+          processedAt: currentTime,
+        },
+      }
+    );
+
+    // Update user articles with processedAt even if processing wasn't complete
+    await userArticles.updateMany(
+      {
+        feedUrl: fullDocument.feedUrl,
+        href: fullDocument.link,
+      },
+      {
+        $set: {
+          processedAt: currentTime,
+        },
+      }
+    );
+
+    return;
+  }
+
+  // Processing is complete, update with all data and processedAt timestamp
   const updatedBackendArticles = await backendArticles.updateOne(
     {
       feedUrl: fullDocument.feedUrl,
@@ -50,6 +80,7 @@ export async function commitArticleToDb(fullDocument: BackendArticle) {
         summary: fullDocument.summary,
         tags: fullDocument.tags,
         updatedAt: new Date(),
+        processedAt: new Date(),
       },
     }
   );
@@ -71,6 +102,7 @@ export async function commitArticleToDb(fullDocument: BackendArticle) {
         summary: fullDocument.summary,
         tags: fullDocument.tags,
         updatedAt: new Date(),
+        processedAt: new Date(),
       },
     }
   );
